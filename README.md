@@ -1,37 +1,17 @@
 # TeamCity Pipelines DSL
-Kotlin DSL library for TeamCity pipelines
+Kotlin DSL extension plugin for TeamCity pipelines
 
-The library provides a number of extensions to simplify creating TeamCity build chains in Kotlin DSL. The main feature of the library is automatic setup of snapshot dependencies.
+The plugin provides a number of extensions to simplify creating TeamCity build chains in Kotlin DSL. The main feature of the plugin is automatic setup of snapshot dependencies.
+
+Please note that the plugin is experimental at the moment and the syntax of the pipeline DSL is not final and may change in the future.
 
 ## Usage
 
-1. Add jitpack repository to your .teamcity/pom.xml  
-
-```xml
-    <repositories>
-      <repository>
-        <id>jitpack.io</id>
-        <url>https://jitpack.io</url>
-      </repository>
-    </repository>
-```
-
-
-2. Add the library as a dependency in .teamcity/pom.xml
-
-```xml
-   <dependency>
-	 <groupId>com.github.JetBrains</groupId>
-	 <artifactId>teamcity-pipelines-dsl</artifactId>
-	 <version>[tag]</version>
-   </dependency>
-```
-
-[![](https://jitpack.io/v/JetBrains/teamcity-pipelines-dsl.svg)](https://jitpack.io/#JetBrains/teamcity-pipelines-dsl)
+The plugin can be installed in TeamCity version 2018.2 and greater. No additional dependencies have to be defined in the pom.xml file of your DSL to use it.
 
 ## Examples
 
-To compose the pipeline with the aid of TeamCity Pipelines DSL library you will be using three main terms: **sequence**, **parallel**, and **build**.
+To compose the pipeline with the aid of TeamCity Pipelines DSL you will be using three main terms: **sequence**, **parallel**, and **build**.
 
 The main block of the pipeline is the **sequence**. Inside the sequence we may define *parallel* blocks and the individual *build* stages. Further on, the *parallel* blocks may include the individual *builds* but also *sequences*.
 
@@ -42,10 +22,7 @@ The following example demonstrates a simple sequence with three individual build
 ```kotlin
 //settings.kts
 
-import jetbrains.buildServer.configs.kotlin.v2018_2.BuildType
-import jetbrains.buildServer.configs.kotlin.v2018_2.buildSteps.script
-import jetbrains.buildServer.configs.kotlin.v2018_2.project
-import jetbrains.buildServer.configs.kotlin.v2018_2.version
+import jetbrains.buildServer.configs.kotlin.v2018_2.*
 
 version = "2018.2"
 
