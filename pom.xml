@@ -35,7 +35,7 @@
       </pluginManagement>
   </build>
   <modules>
-    <module>teamcity-pipelines-dsl-kotlin</module>
+    <module>configs-dsl-kotlin-pipelines</module>
     <module>build</module>
   </modules>
 </project>

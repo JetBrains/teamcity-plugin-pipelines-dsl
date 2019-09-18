@@ -15,7 +15,7 @@
       <dependency>
     	<groupId>org.jetbrains.teamcity</groupId>
     	<version>1.0-SNAPSHOT</version>
-        <artifactId>teamcity-pipelines-dsl-kotlin</artifactId>
+        <artifactId>configs-dsl-kotlin-pipelines</artifactId>
       </dependency>
   </dependencies>
   <build>

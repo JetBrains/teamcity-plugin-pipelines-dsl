@@ -1,4 +1,9 @@
-package jetbrains.buildServer.configs.kotlin.v2018_2
+package jetbrains.buildServer.configs.kotlin.v2019_2_eap
+
+import jetbrains.buildServer.configs.kotlin.v2018_2.ArtifactDependency
+import jetbrains.buildServer.configs.kotlin.v2018_2.BuildType
+import jetbrains.buildServer.configs.kotlin.v2018_2.Project
+import jetbrains.buildServer.configs.kotlin.v2018_2.SnapshotDependency
 
 typealias DependencySettings = SnapshotDependency.() -> Unit
 

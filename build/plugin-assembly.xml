@@ -9,13 +9,13 @@
      <file>
          <source>target/teamcity-plugin.xml</source>
          <outputDirectory>/</outputDirectory>
-     </file> 
+     </file>
   </files>
   <moduleSets>
     <moduleSet>
        <useAllReactorProjects>true</useAllReactorProjects>
        <includes>
-           <include>org.jetbrains.teamcity:teamcity-pipelines-dsl-kotlin</include>
+           <include>org.jetbrains.teamcity:configs-dsl-kotlin-pipelines</include>
        </includes>
        <binaries>
            <outputDirectory>kotlin-dsl</outputDirectory>
