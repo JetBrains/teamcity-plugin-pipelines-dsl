@@ -7,19 +7,19 @@ import jetbrains.buildServer.configs.kotlin.v2018_2.SnapshotDependency
 
 typealias DependencySettings = SnapshotDependency.() -> Unit
 
-abstract class Stage {
+abstract class Stage(val project: Project) {
     var dependencySettings: DependencySettings = {}
     val dependencies = mutableListOf<Pair<Stage, DependencySettings>>()
 }
 
-class Single(val buildType: BuildType) : Stage()
+class Single(project: Project, val buildType: BuildType) : Stage(project)
 
-class Parallel : Stage() {
+class Parallel(project: Project) : Stage(project) {
     val buildTypes = arrayListOf<BuildType>()
     val sequences = arrayListOf<Sequence>()
 }
 
-class Sequence : Stage() {
+class Sequence(project: Project) : Stage(project) {
     val stages = arrayListOf<Stage>()
 }
 
@@ -36,39 +36,51 @@ fun Parallel.build(block: BuildType.() -> Unit): BuildType {
 }
 
 fun Parallel.sequence(block: Sequence.() -> Unit): Sequence {
-    val sequence = Sequence().apply(block)
+    return sequence(project, block)
+}
+
+fun Parallel.sequence(project: Project, block: Sequence.() -> Unit): Sequence {
+    val sequence = Sequence(project).apply(block)
     buildDependencies(sequence)
     sequences.add(sequence)
     return sequence
 }
 
 fun Sequence.sequence(block: Sequence.() -> Unit): Sequence {
-    val sequence = Sequence().apply(block)
+    return sequence(project, block)
+}
+
+fun Sequence.sequence(project: Project, block: Sequence.() -> Unit): Sequence {
+    val sequence = Sequence(project).apply(block)
     buildDependencies(sequence)
     stages.add(sequence)
     return sequence
 }
 
 fun Sequence.parallel(block: Parallel.() -> Unit): Parallel {
-    val parallel = Parallel().apply(block)
+    return parallel(project, block)
+}
+
+fun Sequence.parallel(project: Project, block: Parallel.() -> Unit): Parallel {
+    val parallel = Parallel(project).apply(block)
     stages.add(parallel)
     return parallel
 }
 
 fun Sequence.build(bt: BuildType, block: BuildType.() -> Unit = {}): BuildType {
     bt.apply(block)
-    stages.add(Single(bt))
+    stages.add(Single(project, bt))
     return bt
 }
 
 fun Sequence.build(block: BuildType.() -> Unit): BuildType {
     val bt = BuildType().apply(block)
-    stages.add(Single(bt))
+    stages.add(Single(project, bt))
     return bt
 }
 
 fun Project.sequence(block: Sequence.() -> Unit): Sequence {
-    val sequence = Sequence().apply(block)
+    val sequence = Sequence(this).apply(block)
     buildDependencies(sequence)
     registerBuilds(sequence)
     return sequence
@@ -152,7 +164,7 @@ fun singleDependsOnSingle(stage: Single, dependency: Pair<Single, DependencySett
 
 fun singleDependsOnParallel(stage: Single, dependency: Pair<Parallel, DependencySettings>) {
     dependency.first.buildTypes.forEach { buildType ->
-        val dep = Pair(Single(buildType), dependency.second)
+        val dep = Pair(Single(dependency.first.project, buildType), dependency.second)
         singleDependsOnSingle(stage, dep)
     }
     dependency.first.sequences.forEach { sequence ->
@@ -177,7 +189,7 @@ fun singleDependsOnSequence(stage: Single, dependency: Pair<Sequence, Dependency
 
 fun parallelDependsOnSingle(stage: Parallel, dependency: Pair<Single, DependencySettings>) {
     stage.buildTypes.forEach { buildType ->
-        val single = Single(buildType)
+        val single = Single(stage.project, buildType)
         singleDependsOnSingle(single, dependency)
     }
     stage.sequences.forEach { sequence ->
@@ -187,7 +199,7 @@ fun parallelDependsOnSingle(stage: Parallel, dependency: Pair<Single, Dependency
 
 fun parallelDependsOnParallel(stage: Parallel, dependency: Pair<Parallel, DependencySettings>) {
     stage.buildTypes.forEach { buildType ->
-        singleDependsOnParallel(Single(buildType), dependency)
+        singleDependsOnParallel(Single(stage.project, buildType), dependency)
     }
     stage.sequences.forEach { sequence ->
         sequenceDependsOnParallel(sequence, dependency)
@@ -196,7 +208,7 @@ fun parallelDependsOnParallel(stage: Parallel, dependency: Pair<Parallel, Depend
 
 fun parallelDependsOnSequence(stage: Parallel, dependency: Pair<Sequence, DependencySettings>) {
     stage.buildTypes.forEach { buildType ->
-        singleDependsOnSequence(Single(buildType), dependency)
+        singleDependsOnSequence(Single(stage.project, buildType), dependency)
     }
     stage.sequences.forEach { sequence ->
         sequenceDependsOnSequence(sequence, dependency)
@@ -248,11 +260,11 @@ fun sequenceDependsOnSequence(stage: Sequence, dependency: Pair<Sequence, Depend
 fun Project.registerBuilds(sequence: Sequence) {
     sequence.stages.forEach {
         if (it is Single) {
-            buildType(it.buildType)
+            sequence.project.buildType(it.buildType)
         }
         if (it is Parallel) {
             it.buildTypes.forEach { build ->
-                buildType(build)
+                it.project.buildType(build)
             }
             it.sequences.forEach { seq ->
                 registerBuilds(seq)
@@ -275,6 +287,7 @@ fun Project.build(block: BuildType.() -> Unit): BuildType {
     buildType(bt)
     return bt
 }
+
 
 fun BuildType.produces(artifacts: String) {
     artifactRules = artifacts
@@ -299,12 +312,12 @@ fun BuildType.dependsOn(bt: BuildType, settings: SnapshotDependency.() -> Unit =
  * This method works as expected only if the <code>stage</code> is already populated
  */
 fun BuildType.dependsOn(stage: Stage, dependencySettings: DependencySettings = {}) {
-    val single = Single(this)
+    val single = Single(stage.project, this)
     single.dependsOn(stage, dependencySettings) //TODO: does it really work?
 }
 
 fun Stage.dependsOn(bt: BuildType, dependencySettings: DependencySettings = {}) {
-    val stage = Single(bt)
+    val stage = Single(project, bt)
     dependsOn(stage, dependencySettings)
 }
 
