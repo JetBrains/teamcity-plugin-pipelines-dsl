@@ -14,24 +14,23 @@ abstract class Stage(val project: Project) {
 
 class Single(project: Project, val buildType: BuildType) : Stage(project)
 
-class Parallel(project: Project) : Stage(project) {
-    val buildTypes = arrayListOf<BuildType>()
-    val sequences = arrayListOf<Sequence>()
-}
-
-class Sequence(project: Project) : Stage(project) {
+abstract class CompoundStage(project: Project): Stage(project) {
     val stages = arrayListOf<Stage>()
 }
 
+class Parallel(project: Project) : CompoundStage(project)
+
+class Sequence(project: Project) : CompoundStage(project)
+
 fun Parallel.build(bt: BuildType, block: BuildType.() -> Unit = {}): BuildType {
     bt.apply(block)
-    buildTypes.add(bt)
+    stages.add(Single(project, bt))
     return bt
 }
 
 fun Parallel.build(block: BuildType.() -> Unit): BuildType {
     val bt = BuildType().apply(block)
-    buildTypes.add(bt)
+    stages.add(Single(project, bt))
     return bt
 }
 
@@ -42,7 +41,7 @@ fun Parallel.sequence(block: Sequence.() -> Unit): Sequence {
 fun Parallel.sequence(project: Project, block: Sequence.() -> Unit): Sequence {
     val sequence = Sequence(project).apply(block)
     buildDependencies(sequence)
-    sequences.add(sequence)
+    stages.add(sequence)
     return sequence
 }
 
@@ -163,13 +162,13 @@ fun singleDependsOnSingle(stage: Single, dependency: Pair<Single, DependencySett
 }
 
 fun singleDependsOnParallel(stage: Single, dependency: Pair<Parallel, DependencySettings>) {
-    dependency.first.buildTypes.forEach { buildType ->
-        val dep = Pair(Single(dependency.first.project, buildType), dependency.second)
-        singleDependsOnSingle(stage, dep)
-    }
-    dependency.first.sequences.forEach { sequence ->
-        val dep = Pair(sequence, dependency.second)
-        singleDependsOnSequence(stage, dep)
+    dependency.first.stages.forEach { d ->
+        if (d is Single)
+            singleDependsOnSingle(stage, Pair(d, dependency.second))
+        else if (d is Sequence)
+            singleDependsOnSequence(stage, Pair(d, dependency.second))
+        else if (d is Parallel)
+            singleDependsOnParallel(stage, Pair(d, dependency.second))
     }
 }
 
@@ -188,30 +187,35 @@ fun singleDependsOnSequence(stage: Single, dependency: Pair<Sequence, Dependency
 }
 
 fun parallelDependsOnSingle(stage: Parallel, dependency: Pair<Single, DependencySettings>) {
-    stage.buildTypes.forEach { buildType ->
-        val single = Single(stage.project, buildType)
-        singleDependsOnSingle(single, dependency)
-    }
-    stage.sequences.forEach { sequence ->
-        sequenceDependsOnSingle(sequence, dependency)
+    stage.stages.forEach { d ->
+        if (d is Single)
+            singleDependsOnSingle(d, dependency)
+        else if (d is Sequence)
+            sequenceDependsOnSingle(d, dependency)
+        else if (d is Parallel)
+            parallelDependsOnSingle(d, dependency)
     }
 }
 
 fun parallelDependsOnParallel(stage: Parallel, dependency: Pair<Parallel, DependencySettings>) {
-    stage.buildTypes.forEach { buildType ->
-        singleDependsOnParallel(Single(stage.project, buildType), dependency)
-    }
-    stage.sequences.forEach { sequence ->
-        sequenceDependsOnParallel(sequence, dependency)
+    stage.stages.forEach { d ->
+        if (d is Single)
+            singleDependsOnParallel(d, dependency)
+        else if (d is Sequence)
+            sequenceDependsOnParallel(d, dependency)
+        else if (d is Parallel)
+            parallelDependsOnParallel(d, dependency)
     }
 }
 
 fun parallelDependsOnSequence(stage: Parallel, dependency: Pair<Sequence, DependencySettings>) {
-    stage.buildTypes.forEach { buildType ->
-        singleDependsOnSequence(Single(stage.project, buildType), dependency)
-    }
-    stage.sequences.forEach { sequence ->
-        sequenceDependsOnSequence(sequence, dependency)
+    stage.stages.forEach { d ->
+        if (d is Single)
+            singleDependsOnSequence(d, dependency)
+        else if (d is Sequence)
+            sequenceDependsOnSequence(d, dependency)
+        else if (d is Parallel)
+            parallelDependsOnSequence(d, dependency)
     }
 }
 
@@ -257,24 +261,16 @@ fun sequenceDependsOnSequence(stage: Sequence, dependency: Pair<Sequence, Depend
     }
 }
 
-fun Project.registerBuilds(sequence: Sequence) {
-    sequence.stages.forEach {
-        if (!alreadyRegistered(it.project))
-            this.subProject(it.project)
-
-        if (it is Single) {
-            sequence.project.buildType(it.buildType)
-        }
-        if (it is Parallel) {
-            it.buildTypes.forEach { build ->
-                it.project.buildType(build)
+fun Project.registerBuilds(stage: Stage) {
+    if (stage is CompoundStage) {
+        stage.stages.forEach {
+            if (!alreadyRegistered(it.project))
+                this.subProject(it.project)
+            if (it is Single) {
+                stage.project.buildType(it.buildType)
+            } else {
+                registerBuilds(it)
             }
-            it.sequences.forEach { seq ->
-                registerBuilds(seq)
-            }
-        }
-        if(it is Sequence) {
-            registerBuilds(it)
         }
     }
 }
