@@ -6,10 +6,6 @@ import org.junit.Test
 
 class SnapshotDependenciesTest {
 
-    private fun BuildType.dependencyId(index: Int) =
-        dependencies.items[index].buildTypeId.id?.value
-
-
     @Test
     fun simpleSequence() {
         //region given for simpleSequence
@@ -29,12 +25,11 @@ class SnapshotDependenciesTest {
         //region assertions for simpleSequence
         assertEquals(3, project.buildTypes.size)
 
-        assertEquals(0, a.dependencies.items.size)
-        assertEquals(1, b.dependencies.items.size)
-        assertEquals(1, c.dependencies.items.size)
-
-        assertEquals("A", b.dependencyId(0))
-        assertEquals("B", c.dependencyId(0))
+        assertDependencyIds(
+            Pair(setOf(), a),
+            Pair(setOf("A"), b),
+            Pair(setOf("B"), c)
+        )
         //endregion
     }
 
@@ -61,16 +56,12 @@ class SnapshotDependenciesTest {
         //region assertions for minimalDiamond
         assertEquals(4, project.buildTypes.size)
 
-        assertEquals(0, a.dependencies.items.size)
-        assertEquals(1, b.dependencies.items.size)
-        assertEquals(1, c.dependencies.items.size)
-        assertEquals(2, d.dependencies.items.size)
-
-        assertEquals("A", b.dependencyId(0))
-        assertEquals("A", c.dependencyId(0))
-
-        assertEquals("B", d.dependencyId(0))
-        assertEquals("C", d.dependencyId(1))
+        assertDependencyIds(
+            Pair(setOf(), a),
+            Pair(setOf("A"), b),
+            Pair(setOf("A"), c),
+            Pair(setOf("B", "C"), d)
+        )
         //endregion
     }
 
@@ -101,19 +92,13 @@ class SnapshotDependenciesTest {
         //region assertions for sequenceInParallel
         assertEquals(5, project.buildTypes.size)
 
-        assertEquals(0, a.dependencies.items.size)
-        assertEquals(1, b.dependencies.items.size)
-        assertEquals(1, c.dependencies.items.size)
-        assertEquals(1, d.dependencies.items.size)
-        assertEquals(2, e.dependencies.items.size)
-
-        assertEquals("A", b.dependencyId(0))
-        assertEquals("A", c.dependencyId(0))
-
-        assertEquals("C", d.dependencyId(0))
-
-        assertEquals("B", e.dependencyId(0))
-        assertEquals("D", e.dependencyId(1))
+        assertDependencyIds(
+            Pair(setOf(), a),
+            Pair(setOf("A"), b),
+            Pair(setOf("A"), c),
+            Pair(setOf("C"), d),
+            Pair(setOf("B", "D"), e)
+        )
         //endregion
     }
 
@@ -150,21 +135,14 @@ class SnapshotDependenciesTest {
         //region assertions for outOfSequenceDependency
         assertEquals(6, project.buildTypes.size)
 
-        assertEquals(0, a.dependencies.items.size)
-        assertEquals(2, b.dependencies.items.size)
-        assertEquals(1, c.dependencies.items.size)
-        assertEquals(1, d.dependencies.items.size)
-        assertEquals(2, e.dependencies.items.size)
-
-        assertEquals("F", b.dependencyId(0))
-        assertEquals("A", b.dependencyId(1))
-
-        assertEquals("A", c.dependencyId(0))
-
-        assertEquals("C", d.dependencyId(0))
-
-        assertEquals("B", e.dependencyId(0))
-        assertEquals("D", e.dependencyId(1))
+        assertDependencyIds(
+            Pair(setOf(), a),
+            Pair(setOf("A", "F"), b),
+            Pair(setOf("A"), c),
+            Pair(setOf("C"), d),
+            Pair(setOf("B", "D"), e),
+            Pair(setOf(), f)
+        )
         //endregion
     }
 
@@ -198,24 +176,14 @@ class SnapshotDependenciesTest {
         //region assertions for parallelDependsOnParallel
         assertEquals(6, project.buildTypes.size)
 
-        assertEquals(0, a.dependencies.items.size)
-        assertEquals(1, b.dependencies.items.size)
-        assertEquals(1, c.dependencies.items.size)
-        assertEquals(2, d.dependencies.items.size)
-        assertEquals(2, e.dependencies.items.size)
-        assertEquals(2, f.dependencies.items.size)
-
-        assertEquals("A", b.dependencyId(0))
-        assertEquals("A", c.dependencyId(0))
-
-        assertEquals("B", d.dependencyId(0))
-        assertEquals("C", d.dependencyId(1))
-
-        assertEquals("B", e.dependencyId(0))
-        assertEquals("C", e.dependencyId(1))
-
-        assertEquals("D", f.dependencyId(0))
-        assertEquals("E", f.dependencyId(1))
+        assertDependencyIds(
+            Pair(setOf(), a),
+            Pair(setOf("A"), b),
+            Pair(setOf("A"), c),
+            Pair(setOf("B", "C"), d),
+            Pair(setOf("B", "C"), e),
+            Pair(setOf("E", "D"), f)
+        )
         //endregion
     }
 
@@ -246,16 +214,14 @@ class SnapshotDependenciesTest {
         //region assertions for simpleDependencySettings
         assertEquals(2, project.buildTypes.size)
 
-        assertEquals(0, a.dependencies.items.size)
-        assertEquals(1, b.dependencies.items.size)
+        assertDependencyIds(
+            Pair(setOf(), a),
+            Pair(setOf("A"), b)
+        )
 
-        assertEquals("A", b.dependencyId(0))
-
-        val expected = SnapshotDependency().apply(settings)
-        val actual = b.dependencies.items[0].snapshot
-        assertEquals(expected.runOnSameAgent, actual!!.runOnSameAgent)
-        assertEquals(expected.onDependencyCancel, actual.onDependencyCancel)
-        assertEquals(expected.onDependencyFailure, actual.onDependencyFailure)
+        assertDependencySettings(
+            Triple(SnapshotDependency().apply(settings), b.dependencies.items[0].snapshot!!, "Failed for B0")
+        )
         //endregion
     }
 
@@ -292,28 +258,22 @@ class SnapshotDependenciesTest {
         //region assertions for nestedSequenceSettings
         assertEquals(5, project.buildTypes.size)
 
-        assertEquals(0, a.dependencies.items.size)
-        assertEquals(1, b.dependencies.items.size)
-        assertEquals(1, c.dependencies.items.size)
-        assertEquals(1, d.dependencies.items.size)
-        assertEquals(2, e.dependencies.items.size)
+        assertDependencyIds(
+            Pair(setOf(), a),
+            Pair(setOf("A"), b),
+            Pair(setOf("A"), c),
+            Pair(setOf("C"), d),
+            Pair(setOf("D", "B"), e)
+        )
 
         val expected = SnapshotDependency().apply(settings)
-        val actualForB = b.dependencies.items[0].snapshot
-        assertEquals(expected.runOnSameAgent, actualForB!!.runOnSameAgent)
-        assertEquals(expected.onDependencyCancel, actualForB.onDependencyCancel)
-        assertEquals(expected.onDependencyFailure, actualForB.onDependencyFailure)
+        assertDependencySettings(
+            Triple(expected, b.dependencies.items[0].snapshot!!, "B0"),
+            Triple(expected, c.dependencies.items[0].snapshot!!, "C0")
+            //TODO: The following fails because the settings are only applied to the fan-ins of the parallel block
+            //, Triple(expected, d.dependencies.items[0].snapshot!!, "D0")
+        )
 
-        val actualForC = c.dependencies.items[0].snapshot
-        assertEquals(expected.runOnSameAgent, actualForC!!.runOnSameAgent)
-        assertEquals(expected.onDependencyCancel, actualForC.onDependencyCancel)
-        assertEquals(expected.onDependencyFailure, actualForC.onDependencyFailure)
-
-        //TODO: The following fails because the settings are only applied to the fan-ins of the parallel block
-//        val actualForD = d.dependencies.items[0].snapshot
-//        assertEquals(expected.runOnSameAgent, actualForD!!.runOnSameAgent)
-//        assertEquals(expected.onDependencyCancel, actualForD.onDependencyCancel)
-//        assertEquals(expected.onDependencyFailure, actualForD.onDependencyFailure)
         //endregion
     }
 
@@ -345,22 +305,31 @@ class SnapshotDependenciesTest {
 
         //region assertions for sequenceDependencies
         assertEquals(3, project.buildTypes.size)
-        assertEquals(0, a.dependencies.items.size)
-        assertEquals(0, b.dependencies.items.size)
-        assertEquals(2, c.dependencies.items.size)
 
-        val expected = SnapshotDependency().apply(settings)
-        val cDependsOnA = c.dependencies.items[0].snapshot
-        assertEquals(expected.runOnSameAgent, cDependsOnA!!.runOnSameAgent)
-        assertEquals(expected.onDependencyCancel, cDependsOnA.onDependencyCancel)
-        assertEquals(expected.onDependencyFailure, cDependsOnA.onDependencyFailure)
+        assertDependencyIds(
+            Pair(setOf(), a),
+            Pair(setOf(), b),
+            Pair(setOf("A", "B"), c)
+        )
 
-        val cDepensdOnB = c.dependencies.items[1].snapshot
-        val default = SnapshotDependency()
-        assertEquals(default.runOnSameAgent, cDepensdOnB!!.runOnSameAgent)
-        assertEquals(default.onDependencyCancel, cDepensdOnB.onDependencyCancel)
-        assertEquals(default.onDependencyFailure, cDepensdOnB.onDependencyFailure)
+        assertDependencySettings(
+            Triple(SnapshotDependency(), c.dependencies.items[1].snapshot!!, "C1"),
+            Triple(SnapshotDependency().apply(settings), c.dependencies.items[0].snapshot!!, "C0")
+        )
         //endregion
     }
 
+    private fun assertDependencyIds(vararg expectedAndActual: Pair<Set<String>, BuildType>) {
+        expectedAndActual.forEach {
+            assertEquals("Failed for ${it.second.id}", it.first, it.second.dependencies.items.map {it.buildTypeId.id!!.value}.toSet())
+        }
+    }
+
+    private fun assertDependencySettings(vararg expectedAndActual: Triple<SnapshotDependency, SnapshotDependency, String>) {
+        expectedAndActual.forEach {
+            assertEquals("Failed for ${it.third}", it.first.runOnSameAgent, it.second.runOnSameAgent)
+            assertEquals("Failed for ${it.third}", it.first.onDependencyCancel, it.second.onDependencyCancel)
+            assertEquals("Failed for ${it.third}", it.first.onDependencyFailure, it.second.onDependencyFailure)
+        }
+    }
 }
