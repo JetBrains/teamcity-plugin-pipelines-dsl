@@ -214,13 +214,9 @@ class SnapshotDependenciesTest {
         //region assertions for simpleDependencySettings
         assertEquals(2, project.buildTypes.size)
 
-        assertDependencyIds(
+        assertDependencies(
             Pair(setOf(), a),
-            Pair(setOf("A"), b)
-        )
-
-        assertDependencySettings(
-            Triple(SnapshotDependency().apply(settings), b.dependencies.items[0].snapshot!!, "Failed for B0")
+            Pair(setOf(DepData("A", SnapshotDependency().apply(settings))), b)
         )
         //endregion
     }
@@ -257,23 +253,18 @@ class SnapshotDependenciesTest {
 
         //region assertions for nestedSequenceSettings
         assertEquals(5, project.buildTypes.size)
+        val expDefault = SnapshotDependency()
+        val expCustom = SnapshotDependency().apply(settings)
 
-        assertDependencyIds(
+        assertDependencies(
             Pair(setOf(), a),
-            Pair(setOf("A"), b),
-            Pair(setOf("A"), c),
-            Pair(setOf("C"), d),
-            Pair(setOf("D", "B"), e)
+            Pair(setOf(DepData("A", expCustom)), b),
+            Pair(setOf(DepData("A", expCustom)), c),
+            /* TODO: The following must be expCustom, but will fail then because
+                the settings are only applied to the fan-ins of the parallel block */
+            Pair(setOf(DepData("C", expDefault)), d),
+            Pair(setOf(DepData("D", expDefault), DepData("B", expDefault)), e)
         )
-
-        val expected = SnapshotDependency().apply(settings)
-        assertDependencySettings(
-            Triple(expected, b.dependencies.items[0].snapshot!!, "B0"),
-            Triple(expected, c.dependencies.items[0].snapshot!!, "C0")
-            //TODO: The following fails because the settings are only applied to the fan-ins of the parallel block
-            //, Triple(expected, d.dependencies.items[0].snapshot!!, "D0")
-        )
-
         //endregion
     }
 
@@ -296,7 +287,7 @@ class SnapshotDependenciesTest {
             val s1 = sequence { build(a) }
             val s2 = sequence { build(b) }
 
-            val s3 = sequence {
+            sequence {
                 dependsOn(s1, settings)
                 dependsOn(s2)
                 build(c)
@@ -306,15 +297,13 @@ class SnapshotDependenciesTest {
         //region assertions for sequenceDependencies
         assertEquals(3, project.buildTypes.size)
 
-        assertDependencyIds(
-            Pair(setOf(), a),
-            Pair(setOf(), b),
-            Pair(setOf("A", "B"), c)
-        )
-
-        assertDependencySettings(
-            Triple(SnapshotDependency(), c.dependencies.items[1].snapshot!!, "C1"),
-            Triple(SnapshotDependency().apply(settings), c.dependencies.items[0].snapshot!!, "C0")
+        assertDependencies(
+                Pair(setOf(), a),
+                Pair(setOf(), b),
+                Pair(setOf(
+                        DepData("A", SnapshotDependency().apply(settings)),
+                        DepData("B", SnapshotDependency())
+                ), c)
         )
         //endregion
     }
@@ -325,11 +314,40 @@ class SnapshotDependenciesTest {
         }
     }
 
-    private fun assertDependencySettings(vararg expectedAndActual: Triple<SnapshotDependency, SnapshotDependency, String>) {
+    private fun assertDependencies(vararg expectedAndActual: Pair<Set<DepData>, BuildType>) {
         expectedAndActual.forEach {
-            assertEquals("Failed for ${it.third}", it.first.runOnSameAgent, it.second.runOnSameAgent)
-            assertEquals("Failed for ${it.third}", it.first.onDependencyCancel, it.second.onDependencyCancel)
-            assertEquals("Failed for ${it.third}", it.first.onDependencyFailure, it.second.onDependencyFailure)
+           assertEquals("Failed for ${it.second.id}",
+                   it.first,
+                   it.second.dependencies.items
+                           .map {
+                               DepData(it.buildTypeId.id!!.value, it.snapshot!!.runOnSameAgent, it.snapshot!!.onDependencyCancel, it.snapshot!!.reuseBuilds)
+                           }.toSet())
+        }
+    }
+
+    private class DepData(val id: String, val onSameAgent: Boolean, val onDependencyCancel: FailureAction, val reuseBuilds: ReuseBuilds) {
+        constructor(id: String, depSettings: SnapshotDependency): this(id, depSettings.runOnSameAgent, depSettings.onDependencyCancel, depSettings.reuseBuilds)
+
+        override fun hashCode(): Int {
+            return id.hashCode() + 31 * (onSameAgent.hashCode() + 31 * (onDependencyCancel.hashCode() + 31 * reuseBuilds.hashCode()))
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as DepData
+
+            if (id != other.id) return false
+            if (onSameAgent != other.onSameAgent) return false
+            if (onDependencyCancel != other.onDependencyCancel) return false
+            if (reuseBuilds != other.reuseBuilds) return false
+
+            return true
+        }
+
+        override fun toString(): String {
+            return "DepData(id='$id', onSameAgent=$onSameAgent, onDependencyCancel=$onDependencyCancel, reuseBuilds=$reuseBuilds)"
         }
     }
 }
