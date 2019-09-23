@@ -259,6 +259,9 @@ fun sequenceDependsOnSequence(stage: Sequence, dependency: Pair<Sequence, Depend
 
 fun Project.registerBuilds(sequence: Sequence) {
     sequence.stages.forEach {
+        if (!alreadyRegistered(it.project))
+            this.subProject(it.project)
+
         if (it is Single) {
             sequence.project.buildType(it.buildType)
         }
@@ -274,6 +277,11 @@ fun Project.registerBuilds(sequence: Sequence) {
             registerBuilds(it)
         }
     }
+}
+
+private fun Project.alreadyRegistered(subProject: Project): Boolean {
+    return this == subProject || this.subProjects.contains(subProject)
+            || this.subProjects.any({it.alreadyRegistered(subProject)})
 }
 
 fun Project.build(bt: BuildType, block: BuildType.() -> Unit = {}): BuildType {
