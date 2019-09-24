@@ -80,7 +80,7 @@ class Sequence(project: Project) : CompoundStage(project) {
         return parallel
     }
 
-    fun build(bt: BuildType, block: BuildType.() -> Unit = {}, dependencySettings: DependencySettings = {}): BuildType {
+    fun build(bt: BuildType, dependencySettings: DependencySettings = {}, block: BuildType.() -> Unit = {}): BuildType {
         bt.apply(block)
         val stage = Single(project, bt)
         stage.dependencySettings(dependencySettings)
@@ -88,7 +88,7 @@ class Sequence(project: Project) : CompoundStage(project) {
         return bt
     }
 
-    fun build(block: BuildType.() -> Unit, dependencySettings: DependencySettings = {}): BuildType {
+    fun build(dependencySettings: DependencySettings = {}, block: BuildType.() -> Unit): BuildType {
         val bt = BuildType().apply(block)
         val stage = Single(project, bt)
         stage.dependencySettings(dependencySettings)
