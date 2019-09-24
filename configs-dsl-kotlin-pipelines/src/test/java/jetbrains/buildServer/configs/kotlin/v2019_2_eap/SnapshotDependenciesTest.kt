@@ -34,6 +34,35 @@ class SnapshotDependenciesTest {
     }
 
     @Test
+    fun simpleWithInlineBuilds() {
+        var a: BuildType? = null
+        var b: BuildType? = null
+        var c: BuildType? = null
+        val project = Project {
+            sequence {
+                a = build {
+                    id("A")
+                    produces("artifact")
+                }
+                parallel {
+                    b = build {
+                        id("B")
+                        requires(a!!, "artifact")
+                    }
+                    c = build { id("C") }
+                }
+            }
+        }
+        assertEquals(3, project.buildTypes.size)
+
+        assertDependencyIds(
+                Pair(setOf(), a!!),
+                Pair(setOf("A"), b!!),
+                Pair(setOf("A"), c!!)
+        )
+    }
+
+    @Test
     fun minimalDiamond() {
         //region given for minimalDiamond
         val a = BuildType { id("A") }
