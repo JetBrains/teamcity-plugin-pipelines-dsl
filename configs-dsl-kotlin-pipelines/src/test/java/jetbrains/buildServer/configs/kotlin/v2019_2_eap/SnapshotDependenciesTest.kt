@@ -222,8 +222,48 @@ class SnapshotDependenciesTest {
     }
 
     @Test
-    fun nestedSequenceSettings() {
+    fun sequenceInSequenceSettings() {
         //region given for dependsOnWithSettings
+        val a = BuildType { id("A") }
+        val b = BuildType { id("B") }
+        val c = BuildType { id("C") }
+        val d = BuildType { id("D") }
+        val settings: SnapshotDependency.() -> Unit = {
+            runOnSameAgent = true
+            onDependencyCancel = FailureAction.IGNORE
+            reuseBuilds = ReuseBuilds.NO
+        }
+        //endregion
+
+        val project = Project {
+            sequence {
+                build(a)
+                sequence {
+                    build(b)
+                    build(c)
+                    build(d)
+                    dependencySettings(settings)
+                }
+            }
+        }
+
+        //region assertions for nestedSequenceSettings
+        assertEquals(4, project.buildTypes.size)
+        val expDefault = SnapshotDependency()
+        val expCustom = SnapshotDependency().apply(settings)
+
+        assertDependencies(
+                Pair(setOf(), a),
+                Pair(setOf(DepData("A", expCustom)), b),
+                Pair(setOf(DepData("B", expDefault)), c),
+                Pair(setOf(DepData("C", expDefault)), d)
+        )
+        //endregion
+    }
+
+
+    @Test
+    fun sequenceInParallelSettings() {        //region given for dependsOnWithSettings
         val a = BuildType { id("A") }
         val b = BuildType { id("B") }
         val c = BuildType { id("C") }
