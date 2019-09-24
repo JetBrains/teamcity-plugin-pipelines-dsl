@@ -110,18 +110,13 @@ fun buildDependencies(sequence: Sequence) {
         stageDependsOnStage(sequence, it)
     }
 
-    var previous: Pair<Stage, DependencySettings>? = null
+    var previous: Stage? = null
 
     for (stage in sequence.stages) {
         if (previous != null) {
-            stageDependsOnStage(stage, Pair(previous.first, stage.dependencySettings))
+            stageDependsOnStage(stage, Pair(previous, stage.dependencySettings))
         }
-        stage.dependencies.forEach { dependency ->
-            stageDependsOnStage(stage, dependency)
-        }
-
-        val dependencySettings = previous?.second ?: {}
-        previous = Pair(stage, dependencySettings)
+        previous = stage
     }
 }
 
