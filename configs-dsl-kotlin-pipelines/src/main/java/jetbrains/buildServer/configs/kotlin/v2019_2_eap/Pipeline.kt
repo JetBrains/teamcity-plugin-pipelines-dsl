@@ -10,6 +10,19 @@ typealias DependencySettings = SnapshotDependency.() -> Unit
 abstract class Stage(val project: Project) {
     var dependencySettings: DependencySettings = {}
     val dependencies = mutableListOf<Pair<Stage, DependencySettings>>()
+
+    fun dependsOn(bt: BuildType, dependencySettings: DependencySettings = {}) {
+        val stage = Single(project, bt)
+        dependsOn(stage, dependencySettings)
+    }
+
+    fun dependsOn(stage: Stage, dependencySettings: DependencySettings = {}) {
+        dependencies.add(Pair(stage, dependencySettings))
+    }
+
+    fun dependencySettings(dependencySettings: DependencySettings = {}) {
+        this.dependencySettings = dependencySettings
+    }
 }
 
 class Single(project: Project, val buildType: BuildType) : Stage(project)
@@ -18,69 +31,72 @@ abstract class CompoundStage(project: Project): Stage(project) {
     val stages = arrayListOf<Stage>()
 }
 
-class Parallel(project: Project) : CompoundStage(project)
+class Parallel(project: Project) : CompoundStage(project) {
 
-class Sequence(project: Project) : CompoundStage(project)
+    fun build(bt: BuildType, block: BuildType.() -> Unit = {}): BuildType {
+        bt.apply(block)
+        stages.add(Single(project, bt))
+        return bt
+    }
 
-fun Parallel.build(bt: BuildType, block: BuildType.() -> Unit = {}): BuildType {
-    bt.apply(block)
-    stages.add(Single(project, bt))
-    return bt
+    fun build(block: BuildType.() -> Unit): BuildType {
+        val bt = BuildType().apply(block)
+        stages.add(Single(project, bt))
+        return bt
+    }
+
+    fun sequence(block: Sequence.() -> Unit): Sequence {
+        return sequence(project, block)
+    }
+
+    fun sequence(project: Project, block: Sequence.() -> Unit): Sequence {
+        val sequence = Sequence(project).apply(block)
+        buildDependencies(sequence)
+        stages.add(sequence)
+        return sequence
+    }
 }
 
-fun Parallel.build(block: BuildType.() -> Unit): BuildType {
-    val bt = BuildType().apply(block)
-    stages.add(Single(project, bt))
-    return bt
+class Sequence(project: Project) : CompoundStage(project) {
+
+    fun sequence(block: Sequence.() -> Unit): Sequence {
+        return sequence(project, block)
+    }
+
+    fun sequence(project: Project, block: Sequence.() -> Unit): Sequence {
+        val sequence = Sequence(project).apply(block)
+        buildDependencies(sequence)
+        stages.add(sequence)
+        return sequence
+    }
+
+    fun parallel(block: Parallel.() -> Unit): Parallel {
+        return parallel(project, block)
+    }
+
+    fun parallel(project: Project, block: Parallel.() -> Unit): Parallel {
+        val parallel = Parallel(project).apply(block)
+        stages.add(parallel)
+        return parallel
+    }
+
+    fun build(bt: BuildType, block: BuildType.() -> Unit = {}, dependencySettings: DependencySettings = {}): BuildType {
+        bt.apply(block)
+        val stage = Single(project, bt)
+        stage.dependencySettings(dependencySettings)
+        stages.add(stage)
+        return bt
+    }
+
+    fun build(block: BuildType.() -> Unit, dependencySettings: DependencySettings = {}): BuildType {
+        val bt = BuildType().apply(block)
+        val stage = Single(project, bt)
+        stage.dependencySettings(dependencySettings)
+        stages.add(stage)
+        return bt
+    }
 }
 
-fun Parallel.sequence(block: Sequence.() -> Unit): Sequence {
-    return sequence(project, block)
-}
-
-fun Parallel.sequence(project: Project, block: Sequence.() -> Unit): Sequence {
-    val sequence = Sequence(project).apply(block)
-    buildDependencies(sequence)
-    stages.add(sequence)
-    return sequence
-}
-
-fun Sequence.sequence(block: Sequence.() -> Unit): Sequence {
-    return sequence(project, block)
-}
-
-fun Sequence.sequence(project: Project, block: Sequence.() -> Unit): Sequence {
-    val sequence = Sequence(project).apply(block)
-    buildDependencies(sequence)
-    stages.add(sequence)
-    return sequence
-}
-
-fun Sequence.parallel(block: Parallel.() -> Unit): Parallel {
-    return parallel(project, block)
-}
-
-fun Sequence.parallel(project: Project, block: Parallel.() -> Unit): Parallel {
-    val parallel = Parallel(project).apply(block)
-    stages.add(parallel)
-    return parallel
-}
-
-fun Sequence.build(bt: BuildType, block: BuildType.() -> Unit = {}, dependencySettings: DependencySettings = {}): BuildType {
-    bt.apply(block)
-    val stage = Single(project, bt)
-    stage.dependencySettings(dependencySettings)
-    stages.add(stage)
-    return bt
-}
-
-fun Sequence.build(block: BuildType.() -> Unit, dependencySettings: DependencySettings = {}): BuildType {
-    val bt = BuildType().apply(block)
-    val stage = Single(project, bt)
-    stage.dependencySettings(dependencySettings)
-    stages.add(stage)
-    return bt
-}
 
 fun Project.sequence(block: Sequence.() -> Unit): Sequence {
     val sequence = Sequence(this).apply(block)
@@ -265,7 +281,7 @@ fun sequenceDependsOnSequence(stage: Sequence, dependency: Pair<Sequence, Depend
     }
 }
 
-fun Project.registerBuilds(stage: Stage) {
+private fun Project.registerBuilds(stage: Stage) {
     if (stage is CompoundStage) {
         stage.stages.forEach {
             if (!alreadyRegistered(it.project))
@@ -322,19 +338,6 @@ fun BuildType.dependsOn(bt: BuildType, settings: SnapshotDependency.() -> Unit =
 fun BuildType.dependsOn(stage: Stage, dependencySettings: DependencySettings = {}) {
     val single = Single(stage.project, this)
     single.dependsOn(stage, dependencySettings) //TODO: does it really work?
-}
-
-fun Stage.dependsOn(bt: BuildType, dependencySettings: DependencySettings = {}) {
-    val stage = Single(project, bt)
-    dependsOn(stage, dependencySettings)
-}
-
-fun Stage.dependsOn(stage: Stage, dependencySettings: DependencySettings = {}) {
-    dependencies.add(Pair(stage, dependencySettings))
-}
-
-fun Stage.dependencySettings(dependencySettings: DependencySettings = {}) {
-    this.dependencySettings = dependencySettings
 }
 
 fun BuildType.dependencySettings(dependencySettings: DependencySettings = {}) {
