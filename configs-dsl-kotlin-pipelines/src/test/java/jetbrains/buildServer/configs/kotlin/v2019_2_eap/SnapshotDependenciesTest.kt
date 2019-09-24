@@ -222,6 +222,41 @@ class SnapshotDependenciesTest {
     }
 
     @Test
+    fun singleBuildDependencySettings() {
+
+        //region given for simpleDependencySettings
+        val a = BuildType { id("A") }
+        val b = BuildType { id("B") }
+        val c = BuildType { id("C") }
+
+        val settings: SnapshotDependency.() -> Unit = {
+            runOnSameAgent = true
+            onDependencyCancel = FailureAction.IGNORE
+            reuseBuilds = ReuseBuilds.NO
+        }
+        //endregion
+
+        val project = Project {
+            sequence {
+                build(a)
+                build(b)
+                build(c, dependencySettings = settings)
+            }
+        }
+
+        //region assertions for simpleDependencySettings
+        assertEquals(3, project.buildTypes.size)
+
+        assertDependencies(
+                Pair(setOf(), a),
+                Pair(setOf(DepData("A", SnapshotDependency())), b),
+                Pair(setOf(DepData("B", SnapshotDependency().apply(settings))), c)
+        )
+        //endregion
+    }
+
+
+    @Test
     fun sequenceInSequenceSettings() {
         //region given for dependsOnWithSettings
         val a = BuildType { id("A") }
@@ -263,7 +298,8 @@ class SnapshotDependenciesTest {
 
 
     @Test
-    fun sequenceInParallelSettings() {        //region given for dependsOnWithSettings
+    fun sequenceInParallelSettings() {
+        //region given for dependsOnWithSettings
         val a = BuildType { id("A") }
         val b = BuildType { id("B") }
         val c = BuildType { id("C") }

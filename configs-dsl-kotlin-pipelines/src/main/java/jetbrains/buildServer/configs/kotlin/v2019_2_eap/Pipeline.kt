@@ -66,15 +66,19 @@ fun Sequence.parallel(project: Project, block: Parallel.() -> Unit): Parallel {
     return parallel
 }
 
-fun Sequence.build(bt: BuildType, block: BuildType.() -> Unit = {}): BuildType {
+fun Sequence.build(bt: BuildType, block: BuildType.() -> Unit = {}, dependencySettings: DependencySettings = {}): BuildType {
     bt.apply(block)
-    stages.add(Single(project, bt))
+    val stage = Single(project, bt)
+    stage.dependencySettings(dependencySettings)
+    stages.add(stage)
     return bt
 }
 
-fun Sequence.build(block: BuildType.() -> Unit): BuildType {
+fun Sequence.build(block: BuildType.() -> Unit, dependencySettings: DependencySettings = {}): BuildType {
     val bt = BuildType().apply(block)
-    stages.add(Single(project, bt))
+    val stage = Single(project, bt)
+    stage.dependencySettings(dependencySettings)
+    stages.add(stage)
     return bt
 }
 
