@@ -57,15 +57,19 @@ class Single(project: Project, val buildType: BuildType) : Stage, DependencyCons
 
 class ParallelImpl(project: Project) : Parallel, DependencyConstructor, CompoundStage(project) {
 
-    override fun build(bt: BuildType, block: BuildType.() -> Unit): BuildType {
+    override fun build(bt: BuildType, dependencySettings: DependencySettings, block: BuildType.() -> Unit): BuildType {
         bt.apply(block)
-        stages.add(Single(project, bt))
+        val stage = Single(project, bt)
+        stage.dependencySettings(dependencySettings)
+        stages.add(stage)
         return bt
     }
 
-    override fun build(block: BuildType.() -> Unit): BuildType {
+    override fun build(dependencySettings: DependencySettings, block: BuildType.() -> Unit): BuildType {
         val bt = BuildType().apply(block)
-        stages.add(Single(project, bt))
+        val stage = Single(project, bt)
+        stage.dependencySettings(dependencySettings)
+        stages.add(stage)
         return bt
     }
 
@@ -80,7 +84,10 @@ class ParallelImpl(project: Project) : Parallel, DependencyConstructor, Compound
     }
 
     override fun buildDependencyOn(stage: Stage, settings: DependencySettings) {
-        stages.forEach { it.buildDependencyOn(stage, settings) }
+        stages.forEach { it.buildDependencyOn(stage) {
+            settings()
+            (it.dependencySettings)()
+        }}
     }
 
     override fun buildDependencies() {
@@ -142,7 +149,12 @@ class SequenceImpl(project: Project) : Sequence, DependencyConstructor, Compound
     }
 
     override fun buildDependencyOn(stage: Stage, settings: DependencySettings) {
-        stages.firstOrNull()?.buildDependencyOn(stage, settings)
+        stages.firstOrNull()?.let {
+            it.buildDependencyOn(stage) {
+                settings()
+                (it.dependencySettings)()
+            }
+        }
     }
 }
 

@@ -12,9 +12,9 @@ interface Stage {
 }
 
 interface Parallel: Stage {
-    fun build(bt: BuildType, block: BuildType.() -> Unit = {}): BuildType
+    fun build(bt: BuildType, dependencySettings: DependencySettings = {}, block: BuildType.() -> Unit = {}): BuildType
 
-    fun build(block: BuildType.() -> Unit): BuildType
+    fun build(dependencySettings: DependencySettings = {}, block: BuildType.() -> Unit): BuildType
 
     fun sequence(block: Sequence.() -> Unit): Sequence
 
