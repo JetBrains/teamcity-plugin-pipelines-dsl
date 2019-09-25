@@ -132,6 +132,40 @@ class SnapshotDependenciesTest {
     }
 
     @Test
+    fun sequenceInSequenceInSequence() {
+        //region given for sequenceInParallel
+        val a = BuildType { id("A") }
+        val b = BuildType { id("B") }
+        val c = BuildType { id("C") }
+        val d = BuildType { id("D") }
+        //endregion
+
+        val project = Project {
+            sequence {
+                build(a)
+                sequence {
+                    sequence {
+                        build(b)
+                        build(c)
+                    }
+                    build(d)
+                }
+            }
+        }
+
+        //region assertions for sequenceInParallel
+        assertEquals(4, project.buildTypes.size)
+
+        assertDependencyIds(
+                Pair(setOf(), a),
+                Pair(setOf("A"), b),
+                Pair(setOf("B"), c),
+                Pair(setOf("C"), d)
+        )
+        //endregion
+    }
+
+    @Test
     fun outOfSequenceDependency() {
         //region given for outOfSequenceDependency
         val a = BuildType { id("A") }
@@ -284,14 +318,14 @@ class SnapshotDependenciesTest {
         //endregion
     }
 
-
     @Test
-    fun sequenceInSequenceSettings() {
-        //region given for dependsOnWithSettings
+    fun singleBuildDependencySettingsInParallel() {
+
+        //region given for simpleDependencySettings
         val a = BuildType { id("A") }
         val b = BuildType { id("B") }
         val c = BuildType { id("C") }
-        val d = BuildType { id("D") }
+
         val settings: SnapshotDependency.() -> Unit = {
             runOnSameAgent = true
             onDependencyCancel = FailureAction.IGNORE
@@ -302,29 +336,66 @@ class SnapshotDependenciesTest {
         val project = Project {
             sequence {
                 build(a)
-                sequence {
+                parallel {
                     build(b)
-                    build(c)
-                    build(d)
-                    dependencySettings(settings)
+                    build(c, dependencySettings = settings)
                 }
             }
         }
 
-        //region assertions for nestedSequenceSettings
-        assertEquals(4, project.buildTypes.size)
-        val expDefault = SnapshotDependency()
-        val expCustom = SnapshotDependency().apply(settings)
+        //region assertions for simpleDependencySettings
+        assertEquals(3, project.buildTypes.size)
 
         assertDependencies(
                 Pair(setOf(), a),
-                Pair(setOf(DepData("A", expCustom)), b),
-                Pair(setOf(DepData("B", expDefault)), c),
-                Pair(setOf(DepData("C", expDefault)), d)
+                Pair(setOf(DepData("A", SnapshotDependency())), b),
+                Pair(setOf(DepData("A", SnapshotDependency().apply(settings))), c)
         )
         //endregion
     }
 
+    @Test
+    fun sequenceDependencySettingsInParallel() {
+
+        //region given for simpleDependencySettings
+        val a = BuildType { id("A") }
+        val b = BuildType { id("B") }
+        val c = BuildType { id("C") }
+        val d = BuildType { id("D") }
+
+        val settings: SnapshotDependency.() -> Unit = {
+            runOnSameAgent = true
+            onDependencyCancel = FailureAction.IGNORE
+            reuseBuilds = ReuseBuilds.NO
+        }
+        //endregion
+
+        val project = Project {
+            sequence {
+                build(a)
+                parallel {
+                    build(b)
+                    sequence {
+                        dependencySettings(settings)
+                        build(c)
+                        build(d)
+                    }
+
+                }
+            }
+        }
+
+        //region assertions for simpleDependencySettings
+        assertEquals(4, project.buildTypes.size)
+
+        assertDependencies(
+                Pair(setOf(), a),
+                Pair(setOf(DepData("A", SnapshotDependency())), b),
+                Pair(setOf(DepData("A", SnapshotDependency().apply(settings))), c),
+                Pair(setOf(DepData("C", SnapshotDependency())), d)
+        )
+        //endregion
+    }
 
     @Test
     fun sequenceInParallelSettings() {
@@ -415,12 +486,17 @@ class SnapshotDependenciesTest {
 
     private fun assertDependencyIds(vararg expectedAndActual: Pair<Set<String>, BuildType>) {
         expectedAndActual.forEach {
-            assertEquals("Failed for ${it.second.id}", it.first, it.second.dependencies.items.map {it.buildTypeId.id!!.value}.toSet())
+            assertEquals("Wrong number of dependencies in ${it.second.id}",
+                    it.first.size, it.second.dependencies.items.filter {it.snapshot != null}.size)
+            assertEquals("Failed for ${it.second.id}",
+                    it.first, it.second.dependencies.items.filter {it.snapshot !=null}.map {it.buildTypeId.id!!.value}.toSet())
         }
     }
 
     private fun assertDependencies(vararg expectedAndActual: Pair<Set<DepData>, BuildType>) {
         expectedAndActual.forEach {
+            assertEquals("Wrong number of dependencies in ${it.second.id}",
+                    it.first.size, it.second.dependencies.items.filter {it.snapshot != null}.size)
            assertEquals("Failed for ${it.second.id}",
                    it.first,
                    it.second.dependencies.items
