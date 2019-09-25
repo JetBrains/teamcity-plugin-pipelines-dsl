@@ -12,7 +12,7 @@ abstract class CompoundStage(project: Project): AbstractStage(project) {
     val stages = arrayListOf<AbstractStage>()
 }
 
-abstract class AbstractStage(val project: Project): Stage {
+abstract class AbstractStage(val project: Project): Stage, DependencyConstructor {
     var dependencySettings: DependencySettings = {}
     val dependencies = mutableListOf<Pair<AbstractStage, DependencySettings>>()
 
@@ -29,11 +29,33 @@ abstract class AbstractStage(val project: Project): Stage {
     override fun dependencySettings(dependencySettings: DependencySettings) {
         this.dependencySettings = dependencySettings
     }
+
+    override fun buildDependencies() {
+        dependencies.forEach {
+            buildDependencyOn(it.first, it.second)
+        }
+    }
 }
 
-class Single(project: Project, val buildType: BuildType) : Stage, AbstractStage(project)
+class Single(project: Project, val buildType: BuildType) : Stage, DependencyConstructor, AbstractStage(project) {
+    override fun buildDependencyOn(stage: Stage, settings: DependencySettings) {
+        if (stage is Single) {
+            buildType.dependencies.dependency(stage.buildType) {
+                snapshot(settings)
+            }
+        } else if (stage is ParallelImpl) {
+            stage.stages.forEach {
+                buildDependencyOn(it, settings)
+            }
+        } else if (stage is SequenceImpl) {
+            stage.stages.lastOrNull()?.let {
+                buildDependencyOn(it, settings)
+            }
+        }
+    }
+}
 
-class ParallelImpl(project: Project) : Parallel, CompoundStage(project) {
+class ParallelImpl(project: Project) : Parallel, DependencyConstructor, CompoundStage(project) {
 
     override fun build(bt: BuildType, block: BuildType.() -> Unit): BuildType {
         bt.apply(block)
@@ -53,13 +75,21 @@ class ParallelImpl(project: Project) : Parallel, CompoundStage(project) {
 
     override fun sequence(project: Project, block: Sequence.() -> Unit): Sequence {
         val sequence = SequenceImpl(project).apply(block)
-        buildDependencies(sequence)
         stages.add(sequence)
         return sequence
     }
+
+    override fun buildDependencyOn(stage: Stage, settings: DependencySettings) {
+        stages.forEach { it.buildDependencyOn(stage, settings) }
+    }
+
+    override fun buildDependencies() {
+        super.buildDependencies()
+        stages.forEach { it.buildDependencies()}
+    }
 }
 
-class SequenceImpl(project: Project) : Sequence, CompoundStage(project) {
+class SequenceImpl(project: Project) : Sequence, DependencyConstructor, CompoundStage(project) {
 
     override fun sequence(block: Sequence.() -> Unit): Sequence {
         return sequence(project, block)
@@ -67,7 +97,6 @@ class SequenceImpl(project: Project) : Sequence, CompoundStage(project) {
 
     override fun sequence(project: Project, block: Sequence.() -> Unit): Sequence {
         val sequence = SequenceImpl(project).apply(block)
-        buildDependencies(sequence)
         stages.add(sequence)
         return sequence
     }
@@ -97,185 +126,31 @@ class SequenceImpl(project: Project) : Sequence, CompoundStage(project) {
         stages.add(stage)
         return bt
     }
-}
 
+    override fun buildDependencies() {
+        super.buildDependencies()
+
+        var previous: AbstractStage? = null
+
+        for (stage in stages) {
+            stage.buildDependencies()
+            if (previous != null) {
+                stage.buildDependencyOn(previous, stage.dependencySettings)
+            }
+            previous = stage
+        }
+    }
+
+    override fun buildDependencyOn(stage: Stage, settings: DependencySettings) {
+        stages.firstOrNull()?.buildDependencyOn(stage, settings)
+    }
+}
 
 fun Project.sequence(block: Sequence.() -> Unit): Sequence {
     val sequence = SequenceImpl(this).apply(block)
-    buildDependencies(sequence)
+    sequence.buildDependencies()
     registerBuilds(sequence)
     return sequence
-}
-
-fun buildDependencies(sequence: SequenceImpl) {
-    sequence.dependencies.forEach {
-        stageDependsOnStage(sequence, it)
-    }
-
-    var previous: AbstractStage? = null
-
-    for (stage in sequence.stages) {
-        if (previous != null) {
-            stageDependsOnStage(stage, Pair(previous, stage.dependencySettings))
-        }
-        previous = stage
-    }
-}
-
-fun stageDependsOnStage(stage: AbstractStage, dependency: Pair<AbstractStage, DependencySettings>) {
-    val s = dependency.first
-    val d = dependency.second
-    if (s is Single) {
-        stageDependsOnSingle(stage, Pair(s, d))
-    }
-    if (s is ParallelImpl) {
-        stageDependsOnParallel(stage, Pair(s, d))
-    }
-    if (s is SequenceImpl) {
-        stageDependsOnSequence(stage, Pair(s, d))
-    }
-}
-
-fun stageDependsOnSingle(stage: AbstractStage, dependency: Pair<Single, DependencySettings>) {
-    if (stage is Single) {
-        singleDependsOnSingle(stage, dependency)
-    }
-    if (stage is ParallelImpl) {
-        parallelDependsOnSingle(stage, dependency)
-    }
-    if (stage is SequenceImpl) {
-        sequenceDependsOnSingle(stage, dependency)
-    }
-}
-
-fun stageDependsOnParallel(stage: AbstractStage, dependency: Pair<ParallelImpl, DependencySettings>) {
-    if (stage is Single) {
-        singleDependsOnParallel(stage, dependency)
-    }
-    if (stage is ParallelImpl) {
-        parallelDependsOnParallel(stage, dependency)
-    }
-    if (stage is SequenceImpl) {
-        sequenceDependsOnParallel(stage, dependency)
-    }
-}
-
-fun stageDependsOnSequence(stage: AbstractStage, dependency: Pair<SequenceImpl, DependencySettings>) {
-    if (stage is Single) {
-        singleDependsOnSequence(stage, dependency)
-    }
-    if (stage is ParallelImpl) {
-        parallelDependsOnSequence(stage, dependency)
-    }
-    if (stage is SequenceImpl) {
-        sequenceDependsOnSequence(stage, dependency)
-    }
-}
-
-fun singleDependsOnSingle(stage: Single, dependency: Pair<Single, DependencySettings>) {
-    stage.buildType.dependencies.dependency(dependency.first.buildType) {
-        snapshot(dependency.second)
-    }
-}
-
-fun singleDependsOnParallel(stage: Single, dependency: Pair<ParallelImpl, DependencySettings>) {
-    dependency.first.stages.forEach { d ->
-        if (d is Single)
-            singleDependsOnSingle(stage, Pair(d, dependency.second))
-        else if (d is SequenceImpl)
-            singleDependsOnSequence(stage, Pair(d, dependency.second))
-        else if (d is ParallelImpl)
-            singleDependsOnParallel(stage, Pair(d, dependency.second))
-    }
-}
-
-fun singleDependsOnSequence(stage: Single, dependency: Pair<SequenceImpl, DependencySettings>) {
-    dependency.first.stages.lastOrNull()?.let { lastStage ->
-        if (lastStage is Single) {
-            singleDependsOnSingle(stage, Pair(lastStage, dependency.second))
-        }
-        if (lastStage is ParallelImpl) {
-            singleDependsOnParallel(stage, Pair(lastStage, dependency.second))
-        }
-        if (lastStage is SequenceImpl) {
-            singleDependsOnSequence(stage, Pair(lastStage, dependency.second))
-        }
-    }
-}
-
-fun parallelDependsOnSingle(stage: ParallelImpl, dependency: Pair<Single, DependencySettings>) {
-    stage.stages.forEach { d ->
-        if (d is Single)
-            singleDependsOnSingle(d, dependency)
-        else if (d is SequenceImpl)
-            sequenceDependsOnSingle(d, dependency)
-        else if (d is ParallelImpl)
-            parallelDependsOnSingle(d, dependency)
-    }
-}
-
-fun parallelDependsOnParallel(stage: ParallelImpl, dependency: Pair<ParallelImpl, DependencySettings>) {
-    stage.stages.forEach { d ->
-        if (d is Single)
-            singleDependsOnParallel(d, dependency)
-        else if (d is SequenceImpl)
-            sequenceDependsOnParallel(d, dependency)
-        else if (d is ParallelImpl)
-            parallelDependsOnParallel(d, dependency)
-    }
-}
-
-fun parallelDependsOnSequence(stage: ParallelImpl, dependency: Pair<SequenceImpl, DependencySettings>) {
-    stage.stages.forEach { d ->
-        if (d is Single)
-            singleDependsOnSequence(d, dependency)
-        else if (d is SequenceImpl)
-            sequenceDependsOnSequence(d, dependency)
-        else if (d is ParallelImpl)
-            parallelDependsOnSequence(d, dependency)
-    }
-}
-
-fun sequenceDependsOnSingle(stage: SequenceImpl, dependency: Pair<Single, DependencySettings>) {
-    stage.stages.firstOrNull()?.let { firstStage ->
-        if (firstStage is Single) {
-            singleDependsOnSingle(firstStage, dependency)
-        }
-        if (firstStage is ParallelImpl) {
-            parallelDependsOnSingle(firstStage, dependency)
-        }
-        if (firstStage is SequenceImpl) {
-            sequenceDependsOnSingle(firstStage, dependency)
-        }
-    }
-}
-
-fun sequenceDependsOnParallel(stage: SequenceImpl, dependency: Pair<ParallelImpl, DependencySettings>) {
-    stage.stages.firstOrNull()?.let { firstStage ->
-        if (firstStage is Single) {
-            singleDependsOnParallel(firstStage, dependency)
-        }
-        if (firstStage is ParallelImpl) {
-            parallelDependsOnParallel(firstStage, dependency)
-        }
-        if (firstStage is SequenceImpl) {
-            sequenceDependsOnParallel(firstStage, dependency)
-        }
-    }
-}
-
-fun sequenceDependsOnSequence(stage: SequenceImpl, dependency: Pair<SequenceImpl, DependencySettings>) {
-    stage.stages.firstOrNull()?.let { firstStage ->
-        if (firstStage is Single) {
-            singleDependsOnSequence(firstStage, dependency)
-        }
-        if (firstStage is ParallelImpl) {
-            parallelDependsOnSequence(firstStage, dependency)
-        }
-        if (firstStage is SequenceImpl) {
-            sequenceDependsOnSequence(firstStage, dependency)
-        }
-    }
 }
 
 private fun Project.registerBuilds(stage: AbstractStage) {
@@ -325,18 +200,4 @@ fun BuildType.dependsOn(bt: BuildType, settings: SnapshotDependency.() -> Unit =
     dependencies.dependency(bt) {
         snapshot(settings)
     }
-}
-
-/**
- * !!!WARNING!!!
- *
- * This method works as expected only if the <code>stage</code> is already populated
- */
-fun BuildType.dependsOn(stage: AbstractStage, dependencySettings: DependencySettings = {}) {
-    val single = Single(stage.project, this)
-    single.dependsOn(stage, dependencySettings) //TODO: does it really work?
-}
-
-fun BuildType.dependencySettings(dependencySettings: DependencySettings = {}) {
-    throw IllegalStateException("dependencySettings can only be used with parallel {} or sequence {}. Please use dependsOn instead")
 }

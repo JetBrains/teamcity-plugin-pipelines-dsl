@@ -34,3 +34,10 @@ interface Sequence: Stage {
 
     fun build(dependencySettings: DependencySettings = {}, block: BuildType.() -> Unit): BuildType
 }
+
+interface DependencyConstructor {
+
+    fun buildDependencies()
+
+    fun buildDependencyOn(stage: Stage, settings: DependencySettings)
+}
