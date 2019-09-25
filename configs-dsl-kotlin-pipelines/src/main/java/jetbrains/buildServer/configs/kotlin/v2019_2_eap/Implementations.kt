@@ -7,12 +7,9 @@ import jetbrains.buildServer.configs.kotlin.v2018_2.SnapshotDependency
 
 typealias DependencySettings = SnapshotDependency.() -> Unit
 
-interface Stage {
-    fun dependsOn(bt: BuildType, dependencySettings: DependencySettings = {})
 
-    fun dependsOn(stage: Stage, dependencySettings: DependencySettings = {})
-
-    fun dependencySettings(dependencySettings: DependencySettings = {})
+abstract class CompoundStage(project: Project): AbstractStage(project) {
+    val stages = arrayListOf<AbstractStage>()
 }
 
 abstract class AbstractStage(val project: Project): Stage {
@@ -35,20 +32,6 @@ abstract class AbstractStage(val project: Project): Stage {
 }
 
 class Single(project: Project, val buildType: BuildType) : Stage, AbstractStage(project)
-
-abstract class CompoundStage(project: Project): AbstractStage(project) {
-    val stages = arrayListOf<AbstractStage>()
-}
-
-interface Parallel: Stage {
-    fun build(bt: BuildType, block: BuildType.() -> Unit = {}): BuildType
-
-    fun build(block: BuildType.() -> Unit): BuildType
-
-    fun sequence(block: Sequence.() -> Unit): Sequence
-
-    fun sequence(project: Project, block: Sequence.() -> Unit): Sequence
-}
 
 class ParallelImpl(project: Project) : Parallel, CompoundStage(project) {
 
@@ -74,20 +57,6 @@ class ParallelImpl(project: Project) : Parallel, CompoundStage(project) {
         stages.add(sequence)
         return sequence
     }
-}
-
-interface Sequence: Stage {
-    fun sequence(block: Sequence.() -> Unit): Sequence
-
-    fun sequence(project: Project, block: Sequence.() -> Unit): Sequence
-
-    fun parallel(block: Parallel.() -> Unit): Parallel
-
-    fun parallel(project: Project, block: Parallel.() -> Unit): Parallel
-
-    fun build(bt: BuildType, dependencySettings: DependencySettings = {}, block: BuildType.() -> Unit = {}): BuildType
-
-    fun build(dependencySettings: DependencySettings = {}, block: BuildType.() -> Unit): BuildType
 }
 
 class SequenceImpl(project: Project) : Sequence, CompoundStage(project) {
@@ -371,4 +340,3 @@ fun BuildType.dependsOn(stage: AbstractStage, dependencySettings: DependencySett
 fun BuildType.dependencySettings(dependencySettings: DependencySettings = {}) {
     throw IllegalStateException("dependencySettings can only be used with parallel {} or sequence {}. Please use dependsOn instead")
 }
-
