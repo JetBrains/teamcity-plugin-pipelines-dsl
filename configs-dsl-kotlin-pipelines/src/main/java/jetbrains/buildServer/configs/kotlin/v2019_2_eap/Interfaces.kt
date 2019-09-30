@@ -7,8 +7,6 @@ interface Stage {
     fun dependsOn(bt: BuildType, dependencySettings: DependencySettings = {})
 
     fun dependsOn(stage: Stage, dependencySettings: DependencySettings = {})
-
-    // fun dependencySettings(dependencySettings: DependencySettings = {})
 }
 
 interface Parallel: Stage {
