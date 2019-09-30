@@ -26,7 +26,7 @@ abstract class AbstractStage(val project: Project): Stage, DependencyConstructor
         dependencies.add(Pair(stage, dependencySettings))
     }
 
-    override fun dependencySettings(dependencySettings: DependencySettings) {
+    fun dependencySettings(dependencySettings: DependencySettings) {
         this.dependencySettings = dependencySettings
     }
 
@@ -73,13 +73,14 @@ class ParallelImpl(project: Project) : Parallel, DependencyConstructor, Compound
         return bt
     }
 
-    override fun sequence(block: Sequence.() -> Unit): Sequence {
-        return sequence(project, block)
+    override fun sequence(dependencySettings: DependencySettings, block: Sequence.() -> Unit): Sequence {
+        return sequence(project, dependencySettings, block)
     }
 
-    override fun sequence(project: Project, block: Sequence.() -> Unit): Sequence {
+    override fun sequence(project: Project, dependencySettings: DependencySettings, block: Sequence.() -> Unit): Sequence {
         val sequence = SequenceImpl(project).apply(block)
         stages.add(sequence)
+        sequence.dependencySettings(dependencySettings)
         return sequence
     }
 
@@ -98,23 +99,25 @@ class ParallelImpl(project: Project) : Parallel, DependencyConstructor, Compound
 
 class SequenceImpl(project: Project) : Sequence, DependencyConstructor, CompoundStage(project) {
 
-    override fun sequence(block: Sequence.() -> Unit): Sequence {
-        return sequence(project, block)
+    override fun sequence(dependencySettings: DependencySettings, block: Sequence.() -> Unit): Sequence {
+        return sequence(project, dependencySettings, block)
     }
 
-    override fun sequence(project: Project, block: Sequence.() -> Unit): Sequence {
+    override fun sequence(project: Project, dependencySettings: DependencySettings, block: Sequence.() -> Unit): Sequence {
         val sequence = SequenceImpl(project).apply(block)
         stages.add(sequence)
+        sequence.dependencySettings(dependencySettings)
         return sequence
     }
 
-    override fun parallel(block: Parallel.() -> Unit): Parallel {
-        return parallel(project, block)
+    override fun parallel(dependencySettings: DependencySettings, block: Parallel.() -> Unit): Parallel {
+        return parallel(project, dependencySettings, block)
     }
 
-    override fun parallel(project: Project, block: Parallel.() -> Unit): Parallel {
+    override fun parallel(project: Project, dependencySettings: DependencySettings, block: Parallel.() -> Unit): Parallel {
         val parallel = ParallelImpl(project).apply(block)
         stages.add(parallel)
+        parallel.dependencySettings(dependencySettings)
         return parallel
     }
 

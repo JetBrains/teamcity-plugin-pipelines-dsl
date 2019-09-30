@@ -267,9 +267,8 @@ class SnapshotDependenciesTest {
         val project = Project {
             sequence {
                 build(a)
-                sequence {
+                sequence(settings) {
                     build(b)
-                    dependencySettings(settings)
                 }
             }
         }
@@ -375,8 +374,7 @@ class SnapshotDependenciesTest {
                 build(a)
                 parallel {
                     build(b)
-                    sequence {
-                        dependencySettings(settings)
+                    sequence(settings) {
                         build(c)
                         build(d)
                     }
@@ -415,13 +413,12 @@ class SnapshotDependenciesTest {
         val project = Project {
             sequence {
                 build(a)
-                parallel {
+                parallel(settings) {
                     build(b)
                     sequence {
                         build(c)
                         build(d)
                     }
-                    dependencySettings(settings)
                 }
                 build(e)
             }
