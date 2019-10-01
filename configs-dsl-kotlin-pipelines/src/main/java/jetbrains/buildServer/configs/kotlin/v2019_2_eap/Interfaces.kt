@@ -16,16 +16,16 @@ interface CompoundStage: Stage {
 
     fun build(dependencySettings: DependencySettings = {}, block: BuildType.() -> Unit): BuildType
 
-    fun sequence(dependencySettings: DependencySettings = {}, block: Sequence.() -> Unit): Sequence
+    fun sequence(composite: BuildType? = null, dependencySettings: DependencySettings = {}, block: Sequence.() -> Unit): Sequence
 
-    fun sequence(project: Project, dependencySettings: DependencySettings = {}, block: Sequence.() -> Unit): Sequence
+    fun sequence(project: Project, composite: BuildType? = null, dependencySettings: DependencySettings = {}, block: Sequence.() -> Unit): Sequence
 }
 
 interface Sequence: CompoundStage {
 
-    fun parallel(dependencySettings: DependencySettings = {}, block: CompoundStage.() -> Unit): CompoundStage
+    fun parallel(composite: BuildType? = null, dependencySettings: DependencySettings = {}, block: CompoundStage.() -> Unit): CompoundStage
 
-    fun parallel(project: Project, dependencySettings: DependencySettings = {}, block: CompoundStage.() -> Unit): CompoundStage
+    fun parallel(project: Project, composite: BuildType? = null, dependencySettings: DependencySettings = {}, block: CompoundStage.() -> Unit): CompoundStage
 }
 
 interface DependencyConstructor {

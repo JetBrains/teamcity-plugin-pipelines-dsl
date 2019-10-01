@@ -34,6 +34,75 @@ class SnapshotDependenciesTest {
     }
 
     @Test
+    fun simpleSequenceWithCompositeBuild() {
+        //region given for simpleSequence
+        val a = BuildType { id("A") }
+        val b = BuildType { id("B") }
+        val c = BuildType { id("C") }
+        val d = BuildType { id("D") }
+        val comp = BuildType { id("Comp") }
+        //endregion
+
+        val project = Project {
+            sequence {
+                build(a)
+                sequence(comp) {
+                    build(b)
+                    build(c)
+                }
+                build(d)
+            }
+        }
+
+        //region assertions for simpleSequence
+        assertEquals(5, project.buildTypes.size)
+
+        assertDependencyIds(
+                Pair(setOf(), a),
+                Pair(setOf("A"), b),
+                Pair(setOf("B"), c),
+                Pair(setOf("C"), comp),
+                Pair(setOf("Comp"), d)
+        )
+        //endregion
+    }
+
+    @Test
+    fun simpleSequenceWithParallelAsCompositeBuild() {
+        //region given for simpleSequence
+        val a = BuildType { id("A") }
+        val b = BuildType { id("B") }
+        val c = BuildType { id("C") }
+        val d = BuildType { id("D") }
+        val comp = BuildType { id("Comp") }
+
+        //endregion
+
+        val project = Project {
+            sequence {
+                build(a)
+                parallel(comp) {
+                    build(b)
+                    build(c)
+                }
+                build(d)
+            }
+        }
+
+        //region assertions for simpleSequence
+        assertEquals(5, project.buildTypes.size)
+
+        assertDependencyIds(
+                Pair(setOf(), a),
+                Pair(setOf("A"), b),
+                Pair(setOf("A"), c),
+                Pair(setOf("B", "C"), comp),
+                Pair(setOf("Comp"), d)
+        )
+        //endregion
+    }
+
+    @Test
     fun simpleWithInlineBuilds() {
         var a: BuildType? = null
         var b: BuildType? = null
@@ -267,9 +336,9 @@ class SnapshotDependenciesTest {
         val project = Project {
             sequence {
                 build(a)
-                sequence(settings) {
+                sequence(null, settings, {
                     build(b)
-                }
+                })
             }
         }
 
@@ -374,10 +443,10 @@ class SnapshotDependenciesTest {
                 build(a)
                 parallel {
                     build(b)
-                    sequence(settings) {
+                    sequence(null, settings, {
                         build(c)
                         build(d)
-                    }
+                    })
 
                 }
             }
@@ -413,13 +482,13 @@ class SnapshotDependenciesTest {
         val project = Project {
             sequence {
                 build(a)
-                parallel(settings) {
+                parallel(null, settings, {
                     build(b)
                     sequence {
                         build(c)
                         build(d)
                     }
-                }
+                })
                 build(e)
             }
         }
