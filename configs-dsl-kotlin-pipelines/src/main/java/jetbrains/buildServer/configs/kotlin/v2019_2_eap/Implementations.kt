@@ -181,7 +181,7 @@ private fun Project.registerBuilds(stage: AbstractStage) {
         stage.stages.forEach {
             if (!alreadyRegistered(it.project))
                 this.subProject(it.project)
-            if (it is Single) {
+            if (it is Single && !alreadyRegistered(it.buildType)) {
                 stage.project.buildType(it.buildType)
             } else {
                 registerBuilds(it)
@@ -193,6 +193,11 @@ private fun Project.registerBuilds(stage: AbstractStage) {
 private fun Project.alreadyRegistered(subProject: Project): Boolean {
     return this == subProject || this.subProjects.contains(subProject)
             || this.subProjects.any({it.alreadyRegistered(subProject)})
+}
+
+private fun Project.alreadyRegistered(buildType: BuildType): Boolean {
+    return this.buildTypes.contains(buildType)
+            || this.subProjects.any({it.alreadyRegistered(buildType)})
 }
 
 fun Project.build(bt: BuildType, block: BuildType.() -> Unit = {}): BuildType {
