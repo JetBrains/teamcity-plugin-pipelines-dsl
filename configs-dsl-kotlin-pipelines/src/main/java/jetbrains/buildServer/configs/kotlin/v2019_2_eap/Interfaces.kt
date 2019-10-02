@@ -23,6 +23,10 @@ interface CompoundStage: Stage {
     fun sequence(composite: BuildType? = null, dependencySettings: DependencySettings = {}, block: Sequence.() -> Unit): Sequence
 
     fun sequence(project: Project, composite: BuildType? = null, dependencySettings: DependencySettings = {}, block: Sequence.() -> Unit): Sequence
+
+    fun composite(name: String, block: BuildType.() -> Unit = {}): BuildType
+
+    fun composite(block: BuildType.() -> Unit): BuildType
 }
 
 interface Sequence: CompoundStage {
