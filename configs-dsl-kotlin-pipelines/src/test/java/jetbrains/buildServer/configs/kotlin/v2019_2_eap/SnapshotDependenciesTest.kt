@@ -34,6 +34,140 @@ class SnapshotDependenciesTest {
     }
 
     @Test
+    fun buildTypesAlreadyDefined() {
+        //region given for simpleSequence
+        val a = BuildType { id("A") }
+        val b = BuildType { id("B") }
+        val c = BuildType { id("C") }
+        //endregion
+
+        val project = Project {
+            buildType(b)
+            buildType(a)
+            sequence {
+                build(a)
+                build(b)
+                build(c)
+            }
+        }
+
+        //region assertions for simpleSequence
+        assertEquals(3, project.buildTypes.size)
+
+        assertDependencyIds(
+                Pair(setOf(), a),
+                Pair(setOf("A"), b),
+                Pair(setOf("B"), c)
+        )
+        //endregion
+    }
+
+    @Test
+    fun subprojectsInSequence() {
+        //region given for simpleSequence
+        val a = BuildType { id("A") }
+        val b = BuildType { id("B") }
+        val c = BuildType { id("C") }
+
+        val sp = Project { id("SP") }
+        //endregion
+
+        val project = Project {
+            sequence {
+                build(a)
+                sequence(sp) {
+                    build(b)
+                    build(c)
+                }
+            }
+        }
+
+        //region assertions for simpleSequence
+        assertEquals(1, project.buildTypes.size)
+        assertEquals(1, project.subProjects.size)
+        assertEquals(2, project.subProjects[0].buildTypes.size)
+
+        assertDependencyIds(
+                Pair(setOf(), a),
+                Pair(setOf("A"), b),
+                Pair(setOf("B"), c)
+        )
+        //endregion
+    }
+
+    @Test
+    fun buildTypesAlreadyInSubprojects() {
+        //region given for simpleSequence
+        val a = BuildType { id("A") }
+        val b = BuildType { id("B") }
+        val c = BuildType { id("C") }
+
+        val sp = Project {
+            id("SP")
+            buildType(b)
+            buildType(c)
+        }
+        //endregion
+
+        val project = Project {
+            subProject(sp)
+            sequence {
+                build(a)
+                sequence {
+                    build(b)
+                    build(c)
+                }
+            }
+        }
+
+        //region assertions for simpleSequence
+        assertEquals(1, project.buildTypes.size)
+        assertEquals(1, project.subProjects.size)
+        assertEquals(2, project.subProjects[0].buildTypes.size)
+
+        assertDependencyIds(
+                Pair(setOf(), a),
+                Pair(setOf("A"), b),
+                Pair(setOf("B"), c)
+        )
+        //endregion
+    }
+
+    @Test
+    fun subprojectsAlreadyDefined() {
+        //region given for simpleSequence
+        val a = BuildType { id("A") }
+        val b = BuildType { id("B") }
+        val c = BuildType { id("C") }
+
+        val sp = Project { id("SP") }
+        //endregion
+
+        val project = Project {
+            subProject(sp)
+            sequence {
+                build(a)
+                sequence(sp) {
+                    build(b)
+                    build(c)
+                }
+            }
+        }
+
+        //region assertions for simpleSequence
+        assertEquals(1, project.buildTypes.size)
+        assertEquals(1, project.subProjects.size)
+        assertEquals(2, project.subProjects[0].buildTypes.size)
+
+        assertDependencyIds(
+                Pair(setOf(), a),
+                Pair(setOf("A"), b),
+                Pair(setOf("B"), c)
+        )
+        //endregion
+    }
+
+    @Test
     fun simpleSequenceWithCompositeBuild() {
         //region given for simpleSequence
         val a = BuildType { id("A") }
@@ -98,6 +232,38 @@ class SnapshotDependenciesTest {
                 Pair(setOf("A"), c),
                 Pair(setOf("B", "C"), comp),
                 Pair(setOf("Comp"), d)
+        )
+        //endregion
+    }
+
+    @Test
+    fun inlineComposite() {
+        //region given for simpleSequence
+        val a = BuildType { id("A") }
+        val b = BuildType { id("B") }
+        val c = BuildType { id("C") }
+        val d = BuildType { id("D") }
+
+        //endregion
+
+        val project = Project {
+            sequence {
+                build(a)
+                parallel(composite("Comp")) {
+                    build(b)
+                    build(c)
+                }
+                build(d)
+            }
+        }
+
+        //region assertions for simpleSequence
+        assertEquals(5, project.buildTypes.size)
+
+        assertDependencyIds(
+                Pair(setOf(), a),
+                Pair(setOf("A"), b),
+                Pair(setOf("A"), c)
         )
         //endregion
     }
