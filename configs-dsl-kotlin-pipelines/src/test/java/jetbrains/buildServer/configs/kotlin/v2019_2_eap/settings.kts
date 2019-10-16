@@ -31,7 +31,7 @@ project {
 
                 }
                 produces("artifact")
-                requires(Compile, "file.txt")
+                consumes(Compile, "file.txt")
             }
             sequence {
                 build(Test1) {

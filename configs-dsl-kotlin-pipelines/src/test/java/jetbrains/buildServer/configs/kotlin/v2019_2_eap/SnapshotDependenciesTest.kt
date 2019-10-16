@@ -282,7 +282,7 @@ class SnapshotDependenciesTest {
                 parallel {
                     b = build {
                         id("B")
-                        requires(a!!, "artifact")
+                        consumes(a!!, "artifact")
                     }
                     c = build { id("C") }
                 }

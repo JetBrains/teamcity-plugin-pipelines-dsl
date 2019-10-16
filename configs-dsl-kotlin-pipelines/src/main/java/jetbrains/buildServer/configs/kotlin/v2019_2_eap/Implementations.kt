@@ -217,7 +217,7 @@ fun BuildType.produces(artifacts: String) {
     artifactRules = artifacts
 }
 
-fun BuildType.requires(bt: BuildType, artifacts: String, settings: ArtifactDependency.() -> Unit = {}) {
+fun BuildType.consumes(bt: BuildType, artifacts: String, settings: ArtifactDependency.() -> Unit = {}) {
     dependencies.artifacts(bt) {
         artifactRules = artifacts
         settings()
