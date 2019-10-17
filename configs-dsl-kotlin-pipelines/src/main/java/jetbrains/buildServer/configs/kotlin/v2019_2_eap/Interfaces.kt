@@ -1,7 +1,6 @@
 package jetbrains.buildServer.configs.kotlin.v2019_2_eap
 
 import jetbrains.buildServer.configs.kotlin.v2018_2.BuildType
-import jetbrains.buildServer.configs.kotlin.v2018_2.Project
 
 interface Stage {
 
@@ -12,9 +11,9 @@ interface Stage {
 
 interface CompoundStage: Stage {
 
-    fun build(bt: BuildType, dependencySettings: DependencySettings = {}, block: BuildType.() -> Unit = {}): BuildType
+    fun buildType(bt: BuildType, dependencySettings: DependencySettings = {}, block: BuildType.() -> Unit = {}): BuildType
 
-    fun build(dependencySettings: DependencySettings = {}, block: BuildType.() -> Unit): BuildType
+    fun buildType(dependencySettings: DependencySettings = {}, block: BuildType.() -> Unit): BuildType
 
     fun sequence(dependencySettings: DependencySettings = {}, block: Sequence.() -> Unit): Sequence
 

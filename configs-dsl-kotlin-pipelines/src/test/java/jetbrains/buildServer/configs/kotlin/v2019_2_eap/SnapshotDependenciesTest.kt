@@ -16,9 +16,9 @@ class SnapshotDependenciesTest {
 
         val project = Project {
             sequence {
-                build(a)
-                build(b)
-                build(c)
+                buildType(a)
+                buildType(b)
+                buildType(c)
             }
         }
 
@@ -45,9 +45,9 @@ class SnapshotDependenciesTest {
             buildType(b)
             buildType(a)
             sequence {
-                build(a)
-                build(b)
-                build(c)
+                buildType(a)
+                buildType(b)
+                buildType(c)
             }
         }
 
@@ -79,10 +79,10 @@ class SnapshotDependenciesTest {
         val project = Project {
             subProject(sp)
             sequence {
-                build(a)
+                buildType(a)
                 sequence {
-                    build(b)
-                    build(c)
+                    buildType(b)
+                    buildType(c)
                 }
             }
         }
@@ -112,12 +112,12 @@ class SnapshotDependenciesTest {
 
         val project = Project {
             sequence {
-                build(a)
+                buildType(a)
                 sequence(comp) {
-                    build(b)
-                    build(c)
+                    buildType(b)
+                    buildType(c)
                 }
-                build(d)
+                buildType(d)
             }
         }
 
@@ -147,12 +147,12 @@ class SnapshotDependenciesTest {
 
         val project = Project {
             sequence {
-                build(a)
+                buildType(a)
                 parallel(comp) {
-                    build(b)
-                    build(c)
+                    buildType(b)
+                    buildType(c)
                 }
-                build(d)
+                buildType(d)
             }
         }
 
@@ -181,12 +181,12 @@ class SnapshotDependenciesTest {
 
         val project = Project {
             sequence {
-                build(a)
+                buildType(a)
                 parallel(composite("Comp")) {
-                    build(b)
-                    build(c)
+                    buildType(b)
+                    buildType(c)
                 }
-                build(d)
+                buildType(d)
             }
         }
 
@@ -208,16 +208,16 @@ class SnapshotDependenciesTest {
         var c: BuildType? = null
         val project = Project {
             sequence {
-                a = build {
+                a = buildType {
                     id("A")
                     produces("artifact")
                 }
                 parallel {
-                    b = build {
+                    b = buildType {
                         id("B")
                         consumes(a!!, "artifact")
                     }
-                    c = build { id("C") }
+                    c = buildType { id("C") }
                 }
             }
         }
@@ -241,12 +241,12 @@ class SnapshotDependenciesTest {
 
         val project = Project {
             sequence {
-                build(a)
+                buildType(a)
                 parallel {
-                    build(b)
-                    build(c)
+                    buildType(b)
+                    buildType(c)
                 }
-                build(d)
+                buildType(d)
             }
         }
 
@@ -274,15 +274,15 @@ class SnapshotDependenciesTest {
 
         val project = Project {
             sequence {
-                build(a)
+                buildType(a)
                 parallel {
-                    build(b)
+                    buildType(b)
                     sequence {
-                        build(c)
-                        build(d)
+                        buildType(c)
+                        buildType(d)
                     }
                 }
-                build(e)
+                buildType(e)
             }
         }
 
@@ -310,13 +310,13 @@ class SnapshotDependenciesTest {
 
         val project = Project {
             sequence {
-                build(a)
+                buildType(a)
                 sequence {
                     sequence {
-                        build(b)
-                        build(c)
+                        buildType(b)
+                        buildType(c)
                     }
-                    build(d)
+                    buildType(d)
                 }
             }
         }
@@ -346,20 +346,20 @@ class SnapshotDependenciesTest {
 
         val project = Project {
 
-            build(f) // 'f' does not belong to sequence
+            buildType(f) // 'f' does not belong to sequence
 
             sequence {
-                build(a)
+                buildType(a)
                 parallel {
-                    build(b) {
+                    buildType(b) {
                         dependsOn(f)
                     }
                     sequence {
-                        build(c)
-                        build(d)
+                        buildType(c)
+                        buildType(d)
                     }
                 }
-                build(e)
+                buildType(e)
             }
         }
 
@@ -391,16 +391,16 @@ class SnapshotDependenciesTest {
 
         val project = Project {
             sequence {
-                build(a)
+                buildType(a)
                 parallel {
-                    build(b)
-                    build(c)
+                    buildType(b)
+                    buildType(c)
                 }
                 parallel {
-                    build(d)
-                    build(e)
+                    buildType(d)
+                    buildType(e)
                 }
-                build(f)
+                buildType(f)
             }
         }
 
@@ -434,9 +434,9 @@ class SnapshotDependenciesTest {
 
         val project = Project {
             sequence {
-                build(a)
+                buildType(a)
                 sequence(settings, {
-                    build(b)
+                    buildType(b)
                 })
             }
         }
@@ -468,9 +468,9 @@ class SnapshotDependenciesTest {
 
         val project = Project {
             sequence {
-                build(a)
-                build(b)
-                build(c, dependencySettings = settings)
+                buildType(a)
+                buildType(b)
+                buildType(c, dependencySettings = settings)
             }
         }
 
@@ -502,10 +502,10 @@ class SnapshotDependenciesTest {
 
         val project = Project {
             sequence {
-                build(a)
+                buildType(a)
                 parallel {
-                    build(b)
-                    build(c, dependencySettings = settings)
+                    buildType(b)
+                    buildType(c, dependencySettings = settings)
                 }
             }
         }
@@ -539,12 +539,12 @@ class SnapshotDependenciesTest {
 
         val project = Project {
             sequence {
-                build(a)
+                buildType(a)
                 parallel {
-                    build(b)
+                    buildType(b)
                     sequence(settings, {
-                        build(c)
-                        build(d)
+                        buildType(c)
+                        buildType(d)
                     })
 
                 }
@@ -580,15 +580,15 @@ class SnapshotDependenciesTest {
 
         val project = Project {
             sequence {
-                build(a)
+                buildType(a)
                 parallel(settings, {
-                    build(b)
+                    buildType(b)
                     sequence {
-                        build(c)
-                        build(d)
+                        buildType(c)
+                        buildType(d)
                     }
                 })
-                build(e)
+                buildType(e)
             }
         }
 
@@ -625,13 +625,13 @@ class SnapshotDependenciesTest {
         //endregion
 
         val project = Project {
-            val s1 = sequence { build(a) }
-            val s2 = sequence { build(b) }
+            val s1 = sequence { buildType(a) }
+            val s2 = sequence { buildType(b) }
 
             sequence {
                 dependsOn(s1, settings)
                 dependsOn(s2)
-                build(c)
+                buildType(c)
             }
         }
 

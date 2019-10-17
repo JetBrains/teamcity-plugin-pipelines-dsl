@@ -9,7 +9,7 @@ abstract class CompoundStageImpl(project: Project): CompoundStage, AbstractStage
 
     val stages = arrayListOf<AbstractStage>()
 
-    override fun build(bt: BuildType, dependencySettings: DependencySettings, block: BuildType.() -> Unit): BuildType {
+    override fun buildType(bt: BuildType, dependencySettings: DependencySettings, block: BuildType.() -> Unit): BuildType {
         bt.apply(block)
         val stage = Single(project, bt)
         stage.dependencySettings(dependencySettings)
@@ -17,7 +17,7 @@ abstract class CompoundStageImpl(project: Project): CompoundStage, AbstractStage
         return bt
     }
 
-    override fun build(dependencySettings: DependencySettings, block: BuildType.() -> Unit): BuildType {
+    override fun buildType(dependencySettings: DependencySettings, block: BuildType.() -> Unit): BuildType {
         val bt = BuildType().apply(block)
         val stage = Single(project, bt)
         stage.dependencySettings(dependencySettings)
@@ -199,19 +199,6 @@ private fun Project.alreadyRegistered(buildType: BuildType): Boolean {
     return this.buildTypes.contains(buildType)
             || this.subProjects.any({it.alreadyRegistered(buildType)})
 }
-
-fun Project.build(bt: BuildType, block: BuildType.() -> Unit = {}): BuildType {
-    bt.apply(block)
-    buildType(bt)
-    return bt
-}
-
-fun Project.build(block: BuildType.() -> Unit): BuildType {
-    val bt = BuildType().apply(block)
-    buildType(bt)
-    return bt
-}
-
 
 fun BuildType.produces(artifacts: String) {
     artifactRules = artifacts

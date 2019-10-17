@@ -19,14 +19,14 @@ version = "2018.2"
 project {
 
 
-    val build = build {
+    val build = buildType {
         id("other")
     }
 
     sequence {
-        build(Compile)
+        buildType(Compile)
         parallel {
-            build(Test){
+            buildType(Test){
                 dependsOn(build){
 
                 }
@@ -34,15 +34,15 @@ project {
                 consumes(Compile, "file.txt")
             }
             sequence {
-                build(Test1) {
+                buildType(Test1) {
                     dependsOn(build){
                         runOnSameAgent = true
                     }
                 }
-                build(Test2)
+                buildType(Test2)
             }
         }
-        build(Package)
+        buildType(Package)
     }
 
 }
