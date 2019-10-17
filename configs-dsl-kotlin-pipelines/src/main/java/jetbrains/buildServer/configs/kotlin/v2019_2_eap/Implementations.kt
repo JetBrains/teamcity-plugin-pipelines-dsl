@@ -37,7 +37,7 @@ abstract class CompoundStageImpl(project: Project): CompoundStage, AbstractStage
         return sequence(project, null, dependencySettings, block)
     }
 
-    override fun sequence(project: Project, dependencySettings: DependencySettings, block: Sequence.() -> Unit): Sequence {
+    fun sequence(project: Project, dependencySettings: DependencySettings, block: Sequence.() -> Unit): Sequence {
         return sequence(project, null, dependencySettings, block)
     }
 
@@ -45,7 +45,7 @@ abstract class CompoundStageImpl(project: Project): CompoundStage, AbstractStage
         return sequence(project, composite, dependencySettings, block)
     }
 
-    override fun sequence(project: Project, composite: BuildType?, dependencySettings: DependencySettings, block: Sequence.() -> Unit): Sequence {
+    fun sequence(project: Project, composite: BuildType?, dependencySettings: DependencySettings, block: Sequence.() -> Unit): Sequence {
         val sequence = SequenceImpl(project).apply(block)
         composite?.let {
             it.apply { type = BuildTypeSettings.Type.COMPOSITE }
@@ -121,7 +121,7 @@ class SequenceImpl(project: Project) : Sequence, DependencyConstructor, Compound
         return parallel(project, null, dependencySettings, block)
     }
 
-    override fun parallel(project: Project, dependencySettings: DependencySettings, block: CompoundStage.() -> Unit): CompoundStage {
+    fun parallel(project: Project, dependencySettings: DependencySettings, block: CompoundStage.() -> Unit): CompoundStage {
         return parallel(project, null, dependencySettings, block)
     }
 
@@ -129,7 +129,7 @@ class SequenceImpl(project: Project) : Sequence, DependencyConstructor, Compound
         return parallel(project, composite, dependencySettings, block)
     }
 
-    override fun parallel(project: Project, composite: BuildType?, dependencySettings: DependencySettings, block: CompoundStage.() -> Unit): CompoundStage {
+    fun parallel(project: Project, composite: BuildType?, dependencySettings: DependencySettings, block: CompoundStage.() -> Unit): CompoundStage {
         val parallel = ParallelImpl(project).apply(block)
         if (composite == null) {
             stages.add(parallel)

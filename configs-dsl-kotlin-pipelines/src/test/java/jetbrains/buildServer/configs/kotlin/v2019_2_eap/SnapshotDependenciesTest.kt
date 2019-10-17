@@ -63,39 +63,6 @@ class SnapshotDependenciesTest {
     }
 
     @Test
-    fun subprojectsInSequence() {
-        //region given for simpleSequence
-        val a = BuildType { id("A") }
-        val b = BuildType { id("B") }
-        val c = BuildType { id("C") }
-
-        val sp = Project { id("SP") }
-        //endregion
-
-        val project = Project {
-            sequence {
-                build(a)
-                sequence(sp) {
-                    build(b)
-                    build(c)
-                }
-            }
-        }
-
-        //region assertions for simpleSequence
-        assertEquals(1, project.buildTypes.size)
-        assertEquals(1, project.subProjects.size)
-        assertEquals(2, project.subProjects[0].buildTypes.size)
-
-        assertDependencyIds(
-                Pair(setOf(), a),
-                Pair(setOf("A"), b),
-                Pair(setOf("B"), c)
-        )
-        //endregion
-    }
-
-    @Test
     fun buildTypesAlreadyInSubprojects() {
         //region given for simpleSequence
         val a = BuildType { id("A") }
@@ -114,40 +81,6 @@ class SnapshotDependenciesTest {
             sequence {
                 build(a)
                 sequence {
-                    build(b)
-                    build(c)
-                }
-            }
-        }
-
-        //region assertions for simpleSequence
-        assertEquals(1, project.buildTypes.size)
-        assertEquals(1, project.subProjects.size)
-        assertEquals(2, project.subProjects[0].buildTypes.size)
-
-        assertDependencyIds(
-                Pair(setOf(), a),
-                Pair(setOf("A"), b),
-                Pair(setOf("B"), c)
-        )
-        //endregion
-    }
-
-    @Test
-    fun subprojectsAlreadyDefined() {
-        //region given for simpleSequence
-        val a = BuildType { id("A") }
-        val b = BuildType { id("B") }
-        val c = BuildType { id("C") }
-
-        val sp = Project { id("SP") }
-        //endregion
-
-        val project = Project {
-            subProject(sp)
-            sequence {
-                build(a)
-                sequence(sp) {
                     build(b)
                     build(c)
                 }
