@@ -33,20 +33,20 @@ abstract class CompoundStageImpl(project: Project): CompoundStage, AbstractStage
         return BuildType().apply { type = BuildTypeSettings.Type.COMPOSITE }.apply(block)
     }
 
-    override fun sequence(dependencySettings: DependencySettings, block: Sequence.() -> Unit): Sequence {
-        return sequence(project, null, dependencySettings, block)
+    override fun sequential(dependencySettings: DependencySettings, block: SequentialStage.() -> Unit): SequentialStage {
+        return sequential(project, null, dependencySettings, block)
     }
 
-    fun sequence(project: Project, dependencySettings: DependencySettings, block: Sequence.() -> Unit): Sequence {
-        return sequence(project, null, dependencySettings, block)
+    fun sequential(project: Project, dependencySettings: DependencySettings, block: SequentialStage.() -> Unit): SequentialStage {
+        return sequential(project, null, dependencySettings, block)
     }
 
-    override fun sequence(composite: BuildType?, dependencySettings: DependencySettings, block: Sequence.() -> Unit): Sequence {
-        return sequence(project, composite, dependencySettings, block)
+    override fun sequential(composite: BuildType?, dependencySettings: DependencySettings, block: SequentialStage.() -> Unit): SequentialStage {
+        return sequential(project, composite, dependencySettings, block)
     }
 
-    fun sequence(project: Project, composite: BuildType?, dependencySettings: DependencySettings, block: Sequence.() -> Unit): Sequence {
-        val sequence = SequenceImpl(project).apply(block)
+    fun sequential(project: Project, composite: BuildType?, dependencySettings: DependencySettings, block: SequentialStage.() -> Unit): SequentialStage {
+        val sequence = SequentialStageImpl(project).apply(block)
         composite?.let {
             it.apply { type = BuildTypeSettings.Type.COMPOSITE }
             sequence.stages.add(Single(project, composite))
@@ -92,7 +92,7 @@ class Single(project: Project, val buildType: BuildType) : Stage, DependencyCons
             stage.stages.forEach {
                 buildDependencyOn(it, settings)
             }
-        } else if (stage is SequenceImpl) {
+        } else if (stage is SequentialStageImpl) {
             stage.stages.lastOrNull()?.let {
                 buildDependencyOn(it, settings)
             }
@@ -115,7 +115,7 @@ class ParallelImpl(project: Project) : CompoundStage, DependencyConstructor, Com
     }
 }
 
-class SequenceImpl(project: Project) : Sequence, DependencyConstructor, CompoundStageImpl(project) {
+class SequentialStageImpl(project: Project) : SequentialStage, DependencyConstructor, CompoundStageImpl(project) {
 
     override fun parallel(dependencySettings: DependencySettings, block: CompoundStage.() -> Unit): CompoundStage {
         return parallel(project, null, dependencySettings, block)
@@ -136,7 +136,7 @@ class SequenceImpl(project: Project) : Sequence, DependencyConstructor, Compound
             parallel.dependencySettings(dependencySettings)
             return parallel
         } else {
-            val compositeSequence = SequenceImpl(project)
+            val compositeSequence = SequentialStageImpl(project)
             compositeSequence.stages.add(parallel)
             compositeSequence.stages.add(Single(project, composite))
             compositeSequence.dependencySettings(dependencySettings)
@@ -169,8 +169,8 @@ class SequenceImpl(project: Project) : Sequence, DependencyConstructor, Compound
     }
 }
 
-fun Project.sequence(block: Sequence.() -> Unit): Sequence {
-    val sequence = SequenceImpl(this).apply(block)
+fun Project.sequential(block: SequentialStage.() -> Unit): SequentialStage {
+    val sequence = SequentialStageImpl(this).apply(block)
     sequence.buildDependencies()
     registerBuilds(sequence)
     return sequence

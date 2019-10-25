@@ -15,16 +15,16 @@ interface CompoundStage: Stage {
 
     fun buildType(dependencySettings: DependencySettings = {}, block: BuildType.() -> Unit): BuildType
 
-    fun sequence(dependencySettings: DependencySettings = {}, block: Sequence.() -> Unit): Sequence
+    fun sequential(dependencySettings: DependencySettings = {}, block: SequentialStage.() -> Unit): SequentialStage
 
-    fun sequence(composite: BuildType? = null, dependencySettings: DependencySettings = {}, block: Sequence.() -> Unit): Sequence
+    fun sequential(composite: BuildType? = null, dependencySettings: DependencySettings = {}, block: SequentialStage.() -> Unit): SequentialStage
 
     fun composite(name: String, block: BuildType.() -> Unit = {}): BuildType
 
     fun composite(block: BuildType.() -> Unit): BuildType
 }
 
-interface Sequence: CompoundStage {
+interface SequentialStage: CompoundStage {
 
     fun parallel(dependencySettings: DependencySettings = {}, block: CompoundStage.() -> Unit): CompoundStage
 

@@ -15,7 +15,7 @@ class SnapshotDependenciesTest {
         //endregion
 
         val project = Project {
-            sequence {
+            sequential {
                 buildType(a)
                 buildType(b)
                 buildType(c)
@@ -44,7 +44,7 @@ class SnapshotDependenciesTest {
         val project = Project {
             buildType(b)
             buildType(a)
-            sequence {
+            sequential {
                 buildType(a)
                 buildType(b)
                 buildType(c)
@@ -78,9 +78,9 @@ class SnapshotDependenciesTest {
 
         val project = Project {
             subProject(sp)
-            sequence {
+            sequential {
                 buildType(a)
-                sequence {
+                sequential {
                     buildType(b)
                     buildType(c)
                 }
@@ -111,9 +111,9 @@ class SnapshotDependenciesTest {
         //endregion
 
         val project = Project {
-            sequence {
+            sequential {
                 buildType(a)
-                sequence(comp) {
+                sequential(comp) {
                     buildType(b)
                     buildType(c)
                 }
@@ -146,7 +146,7 @@ class SnapshotDependenciesTest {
         //endregion
 
         val project = Project {
-            sequence {
+            sequential {
                 buildType(a)
                 parallel(comp) {
                     buildType(b)
@@ -180,7 +180,7 @@ class SnapshotDependenciesTest {
         //endregion
 
         val project = Project {
-            sequence {
+            sequential {
                 buildType(a)
                 parallel(composite("Comp")) {
                     buildType(b)
@@ -207,7 +207,7 @@ class SnapshotDependenciesTest {
         var b: BuildType? = null
         var c: BuildType? = null
         val project = Project {
-            sequence {
+            sequential {
                 a = buildType {
                     id("A")
                     produces("artifact")
@@ -240,7 +240,7 @@ class SnapshotDependenciesTest {
         //endregion
 
         val project = Project {
-            sequence {
+            sequential {
                 buildType(a)
                 parallel {
                     buildType(b)
@@ -273,11 +273,11 @@ class SnapshotDependenciesTest {
         //endregion
 
         val project = Project {
-            sequence {
+            sequential {
                 buildType(a)
                 parallel {
                     buildType(b)
-                    sequence {
+                    sequential {
                         buildType(c)
                         buildType(d)
                     }
@@ -309,10 +309,10 @@ class SnapshotDependenciesTest {
         //endregion
 
         val project = Project {
-            sequence {
+            sequential {
                 buildType(a)
-                sequence {
-                    sequence {
+                sequential {
+                    sequential {
                         buildType(b)
                         buildType(c)
                     }
@@ -348,13 +348,13 @@ class SnapshotDependenciesTest {
 
             buildType(f) // 'f' does not belong to sequence
 
-            sequence {
+            sequential {
                 buildType(a)
                 parallel {
                     buildType(b) {
                         dependsOn(f)
                     }
-                    sequence {
+                    sequential {
                         buildType(c)
                         buildType(d)
                     }
@@ -390,7 +390,7 @@ class SnapshotDependenciesTest {
         //endregion
 
         val project = Project {
-            sequence {
+            sequential {
                 buildType(a)
                 parallel {
                     buildType(b)
@@ -433,9 +433,9 @@ class SnapshotDependenciesTest {
         //endregion
 
         val project = Project {
-            sequence {
+            sequential {
                 buildType(a)
-                sequence(settings, {
+                sequential(settings, {
                     buildType(b)
                 })
             }
@@ -467,7 +467,7 @@ class SnapshotDependenciesTest {
         //endregion
 
         val project = Project {
-            sequence {
+            sequential {
                 buildType(a)
                 buildType(b)
                 buildType(c, dependencySettings = settings)
@@ -501,7 +501,7 @@ class SnapshotDependenciesTest {
         //endregion
 
         val project = Project {
-            sequence {
+            sequential {
                 buildType(a)
                 parallel {
                     buildType(b)
@@ -538,11 +538,11 @@ class SnapshotDependenciesTest {
         //endregion
 
         val project = Project {
-            sequence {
+            sequential {
                 buildType(a)
                 parallel {
                     buildType(b)
-                    sequence(settings, {
+                    sequential(settings, {
                         buildType(c)
                         buildType(d)
                     })
@@ -579,11 +579,11 @@ class SnapshotDependenciesTest {
         //endregion
 
         val project = Project {
-            sequence {
+            sequential {
                 buildType(a)
                 parallel(settings, {
                     buildType(b)
-                    sequence {
+                    sequential {
                         buildType(c)
                         buildType(d)
                     }
@@ -625,10 +625,10 @@ class SnapshotDependenciesTest {
         //endregion
 
         val project = Project {
-            val s1 = sequence { buildType(a) }
-            val s2 = sequence { buildType(b) }
+            val s1 = sequential { buildType(a) }
+            val s2 = sequential { buildType(b) }
 
-            sequence {
+            sequential {
                 dependsOn(s1, settings)
                 dependsOn(s2)
                 buildType(c)
