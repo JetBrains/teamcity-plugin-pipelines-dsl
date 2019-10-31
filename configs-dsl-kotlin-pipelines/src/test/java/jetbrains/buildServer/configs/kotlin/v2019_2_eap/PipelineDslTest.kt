@@ -4,7 +4,7 @@ import jetbrains.buildServer.configs.kotlin.v2018_2.*
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-class SnapshotDependenciesTest {
+class PipelineDslTest {
 
     @Test
     fun simpleSequence() {
