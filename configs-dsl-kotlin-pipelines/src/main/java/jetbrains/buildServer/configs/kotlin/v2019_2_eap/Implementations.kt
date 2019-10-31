@@ -114,8 +114,11 @@ abstract class AbstractStage(val project: Project): Stage, DependencyConstructor
 class Single(project: Project, val buildType: BuildType) : Stage, DependencyConstructor, AbstractStage(project) {
     override fun buildDependencyOn(stage: Stage, options: SnapshotDependencyOptions) {
         if (stage is Single) {
-            buildType.dependencies.dependency(stage.buildType) {
-                snapshot(options)
+            if (buildType.dependencies.items.stream()
+                            .noneMatch {it.buildTypeId == stage.buildType && it.snapshot != null}) {
+                buildType.dependencies.dependency(stage.buildType) {
+                    snapshot(options)
+                }
             }
         } else if (stage is ParallelImpl) {
             stage.stages.forEach {
@@ -212,8 +215,8 @@ fun BuildType.consumes(bt: BuildType, artifacts: String, settings: ArtifactDepen
     }
 }
 
-fun BuildType.dependsOn(bt: BuildType, settings: SnapshotDependency.() -> Unit = {}) {
+fun BuildType.dependsOn(bt: BuildType, options: SnapshotDependencyOptions = {}) {
     dependencies.dependency(bt) {
-        snapshot(settings)
+        snapshot(options)
     }
 }

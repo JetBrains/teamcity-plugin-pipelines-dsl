@@ -673,6 +673,95 @@ class PipelineDslTest {
     }
 
     @Test
+    fun explicitDependencyOptions_update_ImplicitOnes_in_Sequence() {
+        val a = BuildType { id("A") }
+        val b = BuildType { id("B") }
+        val c = BuildType { id("C") }
+
+        val settings: SnapshotDependency.() -> Unit = {
+            runOnSameAgent = true
+            onDependencyCancel = FailureAction.IGNORE
+            reuseBuilds = ReuseBuilds.NO
+        }
+
+        val project = Project {
+            sequential {
+                buildType(a)
+                sequential {
+                    dependsOn(a, options = settings)
+                    buildType(b)
+                    buildType(c)
+                }
+            }
+        }
+
+        assertDependencies(
+                Pair(setOf(), a),
+                Pair(setOf(DepData("A", SnapshotDependency().apply(settings))), b),
+                Pair(setOf(DepData("B", SnapshotDependency())), c))
+    }
+
+    @Test
+    fun explicitDependencyOptions_update_ImplicitOnes_in_Parallel() {
+        val a = BuildType { id("A") }
+        val b = BuildType { id("B") }
+        val c = BuildType { id("C") }
+
+        val settings: SnapshotDependency.() -> Unit = {
+            runOnSameAgent = true
+            onDependencyCancel = FailureAction.IGNORE
+            reuseBuilds = ReuseBuilds.NO
+        }
+
+        val project = Project {
+            sequential {
+                buildType(a)
+                parallel {
+                    dependsOn(a, options = settings)
+                    buildType(b)
+                    buildType(c)
+                }
+            }
+        }
+
+        assertDependencies(
+                Pair(setOf(), a),
+                Pair(setOf(DepData("A", SnapshotDependency().apply(settings))), b),
+                Pair(setOf(DepData("A", SnapshotDependency().apply(settings))), c))
+    }
+
+    @Test
+    fun selectiveExplicitDependencyOptions() {
+        val a = BuildType { id("A") }
+        val b = BuildType { id("B") }
+        val c = BuildType { id("C") }
+
+        val settings: SnapshotDependency.() -> Unit = {
+            runOnSameAgent = true
+            onDependencyCancel = FailureAction.IGNORE
+            reuseBuilds = ReuseBuilds.NO
+        }
+
+        val project = Project {
+            sequential {
+                parallel {
+                    buildType(a)
+                    buildType(b)
+                }
+                buildType(c) {
+                    dependsOn(b, options = settings)
+                }
+            }
+        }
+
+        assertDependencies(
+                Pair(setOf(), a),
+                Pair(setOf(), b),
+                Pair(setOf(DepData("A", SnapshotDependency()),
+                        DepData("B", SnapshotDependency().apply(settings))), c))
+    }
+
+    @Test
     fun sequenceWithExplicitDependencies() {
 
         //region given for sequenceDependencies
