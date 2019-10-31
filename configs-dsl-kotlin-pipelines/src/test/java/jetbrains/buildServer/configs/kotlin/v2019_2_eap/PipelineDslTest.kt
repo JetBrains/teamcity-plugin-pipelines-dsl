@@ -648,6 +648,31 @@ class PipelineDslTest {
     }
 
     @Test
+    fun explicitDependencyOptions_update_ImplicitOnes_in_BuildType() {
+        val a = BuildType { id("A") }
+        val b = BuildType { id("B") }
+
+        val settings: SnapshotDependency.() -> Unit = {
+            runOnSameAgent = true
+            onDependencyCancel = FailureAction.IGNORE
+            reuseBuilds = ReuseBuilds.NO
+        }
+
+        val project = Project {
+            sequential {
+                buildType(a)
+                buildType(b) {
+                    dependsOn(a, options = settings)
+                }
+            }
+        }
+
+        assertDependencies(
+                Pair(setOf(), a),
+                Pair(setOf(DepData("A", SnapshotDependency().apply(settings))), b));
+    }
+
+    @Test
     fun sequenceWithExplicitDependencies() {
 
         //region given for sequenceDependencies
