@@ -25,11 +25,11 @@ abstract class CompoundStageImpl(project: Project): CompoundStage, AbstractStage
         return bt
     }
 
-    override fun composite(name: String, block: BuildType.() -> Unit): BuildType {
+    fun composite(name: String, block: BuildType.() -> Unit): BuildType {
         return BuildType { this.name = name; id = DslContext.createId(name); type = BuildTypeSettings.Type.COMPOSITE }.apply(block)
     }
 
-    override fun composite(block: BuildType.() -> Unit): BuildType {
+    fun composite(block: BuildType.() -> Unit): BuildType {
         return BuildType().apply { type = BuildTypeSettings.Type.COMPOSITE }.apply(block)
     }
 
@@ -41,7 +41,7 @@ abstract class CompoundStageImpl(project: Project): CompoundStage, AbstractStage
         return sequential(project, null, dependencySettings, block)
     }
 
-    override fun sequential(composite: BuildType?, dependencySettings: DependencySettings, block: CompoundStage.() -> Unit): CompoundStage {
+    fun sequential(composite: BuildType?, dependencySettings: DependencySettings, block: CompoundStage.() -> Unit): CompoundStage {
         return sequential(project, composite, dependencySettings, block)
     }
 
@@ -64,7 +64,7 @@ abstract class CompoundStageImpl(project: Project): CompoundStage, AbstractStage
         return parallel(project, null, dependencySettings, block)
     }
 
-    override fun parallel(composite: BuildType?, dependencySettings: DependencySettings, block: CompoundStage.() -> Unit): CompoundStage {
+    fun parallel(composite: BuildType?, dependencySettings: DependencySettings, block: CompoundStage.() -> Unit): CompoundStage {
         return parallel(project, composite, dependencySettings, block)
     }
 

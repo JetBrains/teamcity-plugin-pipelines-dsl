@@ -100,6 +100,9 @@ class PipelineDslTest {
         //endregion
     }
 
+    /*
+    NOTE: Composite builds syntax is still to be discussed and has been excluded from the corresponding interface for now
+
     @Test
     fun simpleSequenceWithCompositeBuild() {
         //region given for simpleSequence
@@ -200,6 +203,7 @@ class PipelineDslTest {
         )
         //endregion
     }
+     */
 
     @Test
     fun simpleWithInlineBuilds() {

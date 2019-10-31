@@ -17,15 +17,8 @@ interface CompoundStage: Stage {
 
     fun sequential(dependencySettings: DependencySettings = {}, block: CompoundStage.() -> Unit): CompoundStage
 
-    fun sequential(composite: BuildType? = null, dependencySettings: DependencySettings = {}, block: CompoundStage.() -> Unit): CompoundStage
-
-    fun composite(name: String, block: BuildType.() -> Unit = {}): BuildType
-
-    fun composite(block: BuildType.() -> Unit): BuildType
-
     fun parallel(dependencySettings: DependencySettings = {}, block: CompoundStage.() -> Unit): CompoundStage
 
-    fun parallel(composite: BuildType? = null, dependencySettings: DependencySettings = {}, block: CompoundStage.() -> Unit): CompoundStage
 }
 
 interface DependencyConstructor {
