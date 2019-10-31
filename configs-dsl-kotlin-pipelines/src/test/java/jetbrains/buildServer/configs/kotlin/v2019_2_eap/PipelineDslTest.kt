@@ -338,6 +338,40 @@ class PipelineDslTest {
     }
 
     @Test
+    fun parallelInParallelInSequence() {
+        //region given for sequenceInParallel
+        val a = BuildType { id("A") }
+        val b = BuildType { id("B") }
+        val c = BuildType { id("C") }
+        val d = BuildType { id("D") }
+        //endregion
+
+        val project = Project {
+            sequential {
+                buildType(a)
+                parallel {
+                    parallel {
+                        buildType(b)
+                        buildType(c)
+                    }
+                    buildType(d)
+                }
+            }
+        }
+
+        //region assertions for sequenceInParallel
+        assertEquals(4, project.buildTypes.size)
+
+        assertDependencyIds(
+                Pair(setOf(), a),
+                Pair(setOf("A"), b),
+                Pair(setOf("A"), c),
+                Pair(setOf("A"), d)
+        )
+        //endregion
+    }
+
+    @Test
     fun outOfSequenceDependency() {
         //region given for outOfSequenceDependency
         val a = BuildType { id("A") }
