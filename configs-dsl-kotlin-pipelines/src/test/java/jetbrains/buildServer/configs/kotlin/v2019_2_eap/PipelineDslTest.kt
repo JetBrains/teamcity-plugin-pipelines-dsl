@@ -508,7 +508,7 @@ class PipelineDslTest {
             sequential {
                 buildType(a)
                 buildType(b)
-                buildType(c, dependencySettings = settings)
+                buildType(c, options = settings)
             }
         }
 
@@ -543,7 +543,7 @@ class PipelineDslTest {
                 buildType(a)
                 parallel {
                     buildType(b)
-                    buildType(c, dependencySettings = settings)
+                    buildType(c, options = settings)
                 }
             }
         }
