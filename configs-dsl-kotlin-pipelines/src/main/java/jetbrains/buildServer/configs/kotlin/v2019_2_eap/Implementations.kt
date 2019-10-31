@@ -86,14 +86,18 @@ abstract class AbstractStage(val project: Project): Stage, DependencyConstructor
     var dependencyOptions: SnapshotDependencyOptions = {}
     val dependencies = mutableListOf<Pair<AbstractStage, SnapshotDependencyOptions>>()
 
-    override fun dependsOn(bt: BuildType, options: SnapshotDependencyOptions) {
-        val stage = Single(project, bt)
-        dependsOn(stage, options)
+    override fun dependsOn(vararg buildTypes: BuildType, options: SnapshotDependencyOptions) {
+        buildTypes.forEach {
+            val stage = Single(project, it)
+            dependsOn(stage, options = options)
+        }
     }
 
-    override fun dependsOn(stage: Stage, options: SnapshotDependencyOptions) {
-        stage as AbstractStage
-        dependencies.add(Pair(stage, options))
+    override fun dependsOn(vararg stages: Stage, options: SnapshotDependencyOptions) {
+        stages.forEach {
+            it as AbstractStage
+            dependencies.add(Pair(it, options))
+        }
     }
 
     fun dependencyOptions(options: SnapshotDependencyOptions) {

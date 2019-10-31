@@ -648,12 +648,17 @@ class PipelineDslTest {
     }
 
     @Test
-    fun sequenceDependencies() {
+    fun sequenceWithExplicitDependencies() {
 
         //region given for sequenceDependencies
         val a = BuildType { id("A") }
         val b = BuildType { id("B") }
         val c = BuildType { id("C") }
+        val d = BuildType { id("D") }
+        val e = BuildType { id("E") }
+        val f = BuildType { id("F") }
+        val g = BuildType { id("G") }
+        val h = BuildType { id("H") }
 
         val settings: SnapshotDependency.() -> Unit = {
             runOnSameAgent = true
@@ -663,26 +668,47 @@ class PipelineDslTest {
         //endregion
 
         val project = Project {
-            val s1 = sequential { buildType(a) }
-            val s2 = sequential { buildType(b) }
+            val s = sequential {
+                buildType(a)
+                buildType(b)
+            }
+
+            var p: Stage? = null
+            sequential {
+                p = parallel {
+                    buildType(c)
+                    buildType(d)
+                }
+                buildType(e)
+            }
+
+            buildType(f)
 
             sequential {
-                dependsOn(s1, settings)
-                dependsOn(s2)
-                buildType(c)
+                dependsOn(s, p!!, options = settings)
+                dependsOn(f, options = settings)
+                buildType(g)
+                buildType(h)
             }
         }
 
         //region assertions for sequenceDependencies
-        assertEquals(3, project.buildTypes.size)
+        assertEquals(8, project.buildTypes.size)
 
         assertDependencies(
                 Pair(setOf(), a),
-                Pair(setOf(), b),
+                Pair(setOf(DepData("A", SnapshotDependency())), b),
+                Pair(setOf(), c),
+                Pair(setOf(), d),
+                Pair(setOf(DepData("C", SnapshotDependency()), DepData("D", SnapshotDependency())), e),
+                Pair(setOf(), f),
                 Pair(setOf(
-                        DepData("A", SnapshotDependency().apply(settings)),
-                        DepData("B", SnapshotDependency())
-                ), c)
+                        DepData("B", SnapshotDependency().apply(settings)),
+                        DepData("C", SnapshotDependency().apply(settings)),
+                        DepData("D", SnapshotDependency().apply(settings)),
+                        DepData("F", SnapshotDependency().apply(settings))
+                ), g),
+                Pair(setOf(DepData("G", SnapshotDependency())), h)
         )
         //endregion
     }

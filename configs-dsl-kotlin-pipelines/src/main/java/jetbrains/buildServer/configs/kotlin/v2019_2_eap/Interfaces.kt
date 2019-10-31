@@ -7,9 +7,9 @@ typealias SnapshotDependencyOptions = SnapshotDependency.() -> Unit
 
 interface Stage {
 
-    fun dependsOn(bt: BuildType, options: SnapshotDependencyOptions = {})
+    fun dependsOn(vararg buildTypes: BuildType, options: SnapshotDependencyOptions = {})
 
-    fun dependsOn(stage: Stage, options: SnapshotDependencyOptions = {})
+    fun dependsOn(vararg stages: Stage, options: SnapshotDependencyOptions = {})
 }
 
 interface CompoundStage: Stage {
