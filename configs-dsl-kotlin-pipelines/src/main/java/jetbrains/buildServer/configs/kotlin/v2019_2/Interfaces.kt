@@ -1,7 +1,4 @@
-package jetbrains.buildServer.configs.kotlin.v2019_2_eap
-
-import jetbrains.buildServer.configs.kotlin.v2018_2.BuildType
-import jetbrains.buildServer.configs.kotlin.v2018_2.SnapshotDependency
+package jetbrains.buildServer.configs.kotlin.v2019_2
 
 typealias SnapshotDependencyOptions = SnapshotDependency.() -> Unit
 

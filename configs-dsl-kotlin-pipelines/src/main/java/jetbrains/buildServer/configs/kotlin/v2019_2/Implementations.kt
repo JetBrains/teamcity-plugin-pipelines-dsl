@@ -1,6 +1,4 @@
-package jetbrains.buildServer.configs.kotlin.v2019_2_eap
-
-import jetbrains.buildServer.configs.kotlin.v2018_2.*
+package jetbrains.buildServer.configs.kotlin.v2019_2
 
 abstract class CompoundStageImpl(project: Project): CompoundStage, AbstractStage(project) {
 

@@ -1,6 +1,5 @@
-package jetbrains.buildServer.configs.kotlin.v2019_2_eap
+package jetbrains.buildServer.configs.kotlin.v2019_2
 
-import jetbrains.buildServer.configs.kotlin.v2018_2.*
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
