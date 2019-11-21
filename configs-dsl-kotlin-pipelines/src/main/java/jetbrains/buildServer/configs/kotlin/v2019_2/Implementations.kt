@@ -1,6 +1,6 @@
 package jetbrains.buildServer.configs.kotlin.v2019_2
 
-abstract class CompoundStageImpl(project: Project): CompoundStage, AbstractStage(project) {
+abstract class CompoundStageImpl(project: Project?): CompoundStage, AbstractStage(project) {
 
     val stages = arrayListOf<AbstractStage>()
 
@@ -44,7 +44,7 @@ abstract class CompoundStageImpl(project: Project): CompoundStage, AbstractStage
         return sequential(project, composite, options, block)
     }
 
-    fun sequential(project: Project, composite: BuildType?, options: SnapshotDependencyOptions, block: CompoundStage.() -> Unit): CompoundStage {
+    fun sequential(project: Project?, composite: BuildType?, options: SnapshotDependencyOptions, block: CompoundStage.() -> Unit): CompoundStage {
         val sequence = SequentialStageImpl(project).apply(block)
         composite?.let {
             it.apply { type = BuildTypeSettings.Type.COMPOSITE }
@@ -67,24 +67,24 @@ abstract class CompoundStageImpl(project: Project): CompoundStage, AbstractStage
         return parallel(project, composite, options, block)
     }
 
-    fun parallel(project: Project, composite: BuildType?, options: SnapshotDependencyOptions, block: CompoundStage.() -> Unit): CompoundStage {
+    fun parallel(project: Project?, composite: BuildType?, options: SnapshotDependencyOptions, block: CompoundStage.() -> Unit): CompoundStage {
         val parallel = ParallelImpl(project).apply(block)
-        if (composite == null) {
+        return if (composite == null) {
             stages.add(parallel)
             parallel.dependencyOptions(options)
-            return parallel
+            parallel
         } else {
             val compositeSequence = SequentialStageImpl(project)
             compositeSequence.stages.add(parallel)
             compositeSequence.stages.add(Single(project, composite))
             compositeSequence.dependencyOptions(options)
             stages.add(compositeSequence)
-            return compositeSequence
+            compositeSequence
         }
     }
 }
 
-abstract class AbstractStage(val project: Project): Stage, DependencyConstructor {
+abstract class AbstractStage(val project: Project?): Stage, DependencyConstructor {
     var dependencyOptions: SnapshotDependencyOptions = {}
     val dependencies = mutableListOf<Pair<AbstractStage, SnapshotDependencyOptions>>()
 
@@ -113,7 +113,7 @@ abstract class AbstractStage(val project: Project): Stage, DependencyConstructor
     }
 }
 
-class Single(project: Project, val buildType: BuildType) : Stage, DependencyConstructor, AbstractStage(project) {
+class Single(project: Project?, val buildType: BuildType) : Stage, DependencyConstructor, AbstractStage(project) {
     override fun buildTypes(): List<BuildType> {
         return listOf(buildType)
     }
@@ -138,7 +138,7 @@ class Single(project: Project, val buildType: BuildType) : Stage, DependencyCons
     }
 }
 
-class ParallelImpl(project: Project) : CompoundStage, DependencyConstructor, CompoundStageImpl(project) {
+class ParallelImpl(project: Project?) : CompoundStage, DependencyConstructor, CompoundStageImpl(project) {
 
     override fun buildDependencyOn(stage: Stage, options: SnapshotDependencyOptions) {
         stages.forEach { it.buildDependencyOn(stage) {
@@ -153,7 +153,7 @@ class ParallelImpl(project: Project) : CompoundStage, DependencyConstructor, Com
     }
 }
 
-class SequentialStageImpl(project: Project) : CompoundStage, DependencyConstructor, CompoundStageImpl(project) {
+class SequentialStageImpl(project: Project?) : CompoundStage, DependencyConstructor, CompoundStageImpl(project) {
 
     override fun buildDependencies() {
         super.buildDependencies()
@@ -179,19 +179,20 @@ class SequentialStageImpl(project: Project) : CompoundStage, DependencyConstruct
     }
 }
 
-fun Project.sequential(block: CompoundStage.() -> Unit): CompoundStage {
-    val sequence = SequentialStageImpl(this).apply(block)
+fun sequential(block: CompoundStage.() -> Unit): CompoundStage {
+    val sequence = SequentialStageImpl(null).apply(block)
     sequence.buildDependencies()
-    registerBuilds(sequence)
+    if (sequence.project != null)
+        sequence.project.registerBuilds(sequence)
     return sequence
 }
 
 private fun Project.registerBuilds(stage: AbstractStage) {
     if (stage is CompoundStageImpl) {
         stage.stages.forEach {
-            if (!alreadyRegistered(it.project))
+            if (null != it.project && !alreadyRegistered(it.project))
                 this.subProject(it.project)
-            if (it is Single && !alreadyRegistered(it.buildType)) {
+            if (stage.project != null && it is Single && !alreadyRegistered(it.buildType)) {
                 stage.project.buildType(it.buildType)
             } else {
                 registerBuilds(it)
