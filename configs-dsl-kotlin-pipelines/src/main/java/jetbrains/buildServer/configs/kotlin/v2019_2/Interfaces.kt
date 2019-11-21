@@ -7,6 +7,8 @@ interface Stage {
     fun dependsOn(vararg buildTypes: BuildType, options: SnapshotDependencyOptions = {})
 
     fun dependsOn(vararg stages: Stage, options: SnapshotDependencyOptions = {})
+
+    fun buildTypes(): List<BuildType>
 }
 
 interface CompoundStage: Stage {

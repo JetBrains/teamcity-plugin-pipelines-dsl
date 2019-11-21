@@ -4,6 +4,10 @@ abstract class CompoundStageImpl(project: Project): CompoundStage, AbstractStage
 
     val stages = arrayListOf<AbstractStage>()
 
+    override fun buildTypes(): List<BuildType> {
+        return stages.flatMap { it.buildTypes() }
+    }
+
     override fun buildType(bt: BuildType, options: SnapshotDependencyOptions, block: BuildType.() -> Unit): BuildType {
         bt.apply(block)
         val stage = Single(project, bt)
@@ -110,6 +114,10 @@ abstract class AbstractStage(val project: Project): Stage, DependencyConstructor
 }
 
 class Single(project: Project, val buildType: BuildType) : Stage, DependencyConstructor, AbstractStage(project) {
+    override fun buildTypes(): List<BuildType> {
+        return listOf(buildType)
+    }
+
     override fun buildDependencyOn(stage: Stage, options: SnapshotDependencyOptions) {
         if (stage is Single) {
             if (buildType.dependencies.items.stream()
