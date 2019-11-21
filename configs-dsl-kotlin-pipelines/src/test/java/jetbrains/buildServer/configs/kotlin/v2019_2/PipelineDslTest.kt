@@ -7,7 +7,7 @@ class PipelineDslTest {
 
     @Test
     fun simpleSequence() {
-        //region given for simpleSequence
+        //region given
         val a = BuildType { id("A") }
         val b = BuildType { id("B") }
         val c = BuildType { id("C") }
@@ -25,7 +25,7 @@ class PipelineDslTest {
             buildType(c)
         }
 
-        //region assertions for simpleSequence
+        //region assertions
         assertEquals(3, project.buildTypes.size)
 
         assertDependencyIds(
@@ -38,7 +38,7 @@ class PipelineDslTest {
 
     @Test
     fun buildTypesInSubprojects() {
-        //region given for simpleSequence
+        //region given
         val a = BuildType { id("A") }
         val b = BuildType { id("B") }
         val c = BuildType { id("C") }
@@ -48,12 +48,12 @@ class PipelineDslTest {
             buildType(b)
             buildType(c)
         }
-        //endregion
 
         val project = Project {
             buildType(a)
             subProject(sp)
         }
+        //endregion
 
         sequential {
             buildType(a)
@@ -63,7 +63,7 @@ class PipelineDslTest {
             }
         }
 
-        //region assertions for simpleSequence
+        //region assertions
         assertEquals(1, project.buildTypes.size)
         assertEquals(1, project.subProjects.size)
         assertEquals(2, project.subProjects[0].buildTypes.size)
@@ -75,111 +75,6 @@ class PipelineDslTest {
         )
         //endregion
     }
-
-    /*
-    NOTE: Composite builds syntax is still to be discussed and has been excluded from the corresponding interface for now
-
-    @Test
-    fun simpleSequenceWithCompositeBuild() {
-        //region given for simpleSequence
-        val a = BuildType { id("A") }
-        val b = BuildType { id("B") }
-        val c = BuildType { id("C") }
-        val d = BuildType { id("D") }
-        val comp = BuildType { id("Comp") }
-        //endregion
-
-        val project = Project {
-            sequential {
-                buildType(a)
-                sequential(comp) {
-                    buildType(b)
-                    buildType(c)
-                }
-                buildType(d)
-            }
-        }
-
-        //region assertions for simpleSequence
-        assertEquals(5, project.buildTypes.size)
-
-        assertDependencyIds(
-                Pair(setOf(), a),
-                Pair(setOf("A"), b),
-                Pair(setOf("B"), c),
-                Pair(setOf("C"), comp),
-                Pair(setOf("Comp"), d)
-        )
-        //endregion
-    }
-
-    @Test
-    fun simpleSequenceWithParallelAsCompositeBuild() {
-        //region given for simpleSequence
-        val a = BuildType { id("A") }
-        val b = BuildType { id("B") }
-        val c = BuildType { id("C") }
-        val d = BuildType { id("D") }
-        val comp = BuildType { id("Comp") }
-
-        //endregion
-
-        val project = Project {
-            sequential {
-                buildType(a)
-                parallel(comp) {
-                    buildType(b)
-                    buildType(c)
-                }
-                buildType(d)
-            }
-        }
-
-        //region assertions for simpleSequence
-        assertEquals(5, project.buildTypes.size)
-
-        assertDependencyIds(
-                Pair(setOf(), a),
-                Pair(setOf("A"), b),
-                Pair(setOf("A"), c),
-                Pair(setOf("B", "C"), comp),
-                Pair(setOf("Comp"), d)
-        )
-        //endregion
-    }
-
-    @Test
-    fun inlineComposite() {
-        //region given for simpleSequence
-        val a = BuildType { id("A") }
-        val b = BuildType { id("B") }
-        val c = BuildType { id("C") }
-        val d = BuildType { id("D") }
-
-        //endregion
-
-        val project = Project {
-            sequential {
-                buildType(a)
-                parallel(composite("Comp")) {
-                    buildType(b)
-                    buildType(c)
-                }
-                buildType(d)
-            }
-        }
-
-        //region assertions for simpleSequence
-        assertEquals(5, project.buildTypes.size)
-
-        assertDependencyIds(
-                Pair(setOf(), a),
-                Pair(setOf("A"), b),
-                Pair(setOf("A"), c)
-        )
-        //endregion
-    }
-     */
 
     @Test
     fun simpleWithInlineBuilds() {
@@ -201,6 +96,7 @@ class PipelineDslTest {
             seq.buildTypes().forEach { buildType(it) }
         }
 
+        //region assertions
         assertEquals(3, project.buildTypes.size)
 
         assertDependencyIds(
@@ -208,11 +104,12 @@ class PipelineDslTest {
                 Pair(setOf("A"), seq.buildTypes()[1]),
                 Pair(setOf("A"), seq.buildTypes()[2])
         )
+        //endregion
     }
 
     @Test
     fun minimalDiamond() {
-        //region given for minimalDiamond
+        //region given
         val a = BuildType { id("A") }
         val b = BuildType { id("B") }
         val c = BuildType { id("C") }
@@ -232,7 +129,7 @@ class PipelineDslTest {
             buildType(d)
         }
 
-        //region assertions for minimalDiamond
+        //region assetions
         assertEquals(4, project.buildTypes.size)
 
         assertDependencyIds(
@@ -246,17 +143,17 @@ class PipelineDslTest {
 
     @Test
     fun sequenceInParallel() {
-        //region given for sequenceInParallel
+        //region given
         val a = BuildType { id("A") }
         val b = BuildType { id("B") }
         val c = BuildType { id("C") }
         val d = BuildType { id("D") }
         val e = BuildType { id("E") }
-        //endregion
 
         val project = Project {
             listOf(a, b, c, d, e).forEach { buildType(it) }
         }
+        //endregion
 
         sequential {
             buildType(a)
@@ -270,7 +167,7 @@ class PipelineDslTest {
             buildType(e)
         }
 
-        //region assertions for sequenceInParallel
+        //region assertions
         assertEquals(5, project.buildTypes.size)
 
         assertDependencyIds(
@@ -285,16 +182,16 @@ class PipelineDslTest {
 
     @Test
     fun sequenceInSequenceInSequence() {
-        //region given for sequenceInParallel
+        //region given
         val a = BuildType { id("A") }
         val b = BuildType { id("B") }
         val c = BuildType { id("C") }
         val d = BuildType { id("D") }
-        //endregion
 
         val project = Project {
             listOf(a, b, c, d).forEach { buildType(it) }
         }
+        //endregion
 
         sequential {
             buildType(a)
@@ -307,7 +204,7 @@ class PipelineDslTest {
             }
         }
 
-        //region assertions for sequenceInParallel
+        //region assertions
         assertEquals(4, project.buildTypes.size)
 
         assertDependencyIds(
@@ -321,16 +218,16 @@ class PipelineDslTest {
 
     @Test
     fun parallelInParallelInSequence() {
-        //region given for sequenceInParallel
+        //region given
         val a = BuildType { id("A") }
         val b = BuildType { id("B") }
         val c = BuildType { id("C") }
         val d = BuildType { id("D") }
-        //endregion
 
         val project = Project {
             listOf(a, b, c, d).forEach { buildType(it) }
         }
+        //endregion
 
         sequential {
             buildType(a)
@@ -342,7 +239,8 @@ class PipelineDslTest {
                 buildType(d)
             }
         }
-        //region assertions for sequenceInParallel
+
+        //region assertions
         assertEquals(4, project.buildTypes.size)
 
         assertDependencyIds(
@@ -356,18 +254,18 @@ class PipelineDslTest {
 
     @Test
     fun outOfSequenceDependency() {
-        //region given for outOfSequenceDependency
+        //region given
         val a = BuildType { id("A") }
         val b = BuildType { id("B") }
         val c = BuildType { id("C") }
         val d = BuildType { id("D") }
         val e = BuildType { id("E") }
         val f = BuildType { id("F") }
-        //endregion
 
         val project = Project {
             listOf(a, b, c, d, e, f).forEach { buildType(it) }
         }
+        //endregion
 
         sequential {
             buildType(a)
@@ -383,7 +281,7 @@ class PipelineDslTest {
             buildType(e)
         }
 
-        //region assertions for outOfSequenceDependency
+        //region assertions
         assertEquals(6, project.buildTypes.size)
 
         assertDependencyIds(
@@ -400,18 +298,18 @@ class PipelineDslTest {
 
     @Test
     fun parallelDependsOnParallel() {
-        //region given for parallelDependsOnParallel
+        //region given
         val a = BuildType { id("A") }
         val b = BuildType { id("B") }
         val c = BuildType { id("C") }
         val d = BuildType { id("D") }
         val e = BuildType { id("E") }
         val f = BuildType { id("F") }
-        //endregion
 
         val project = Project {
             listOf(a, b, c, d, e, f).forEach { buildType(it) }
         }
+        //endregion
 
         sequential {
             buildType(a)
@@ -426,7 +324,7 @@ class PipelineDslTest {
             buildType(f)
         }
 
-        //region assertions for parallelDependsOnParallel
+        //region assertions
         assertEquals(6, project.buildTypes.size)
 
         assertDependencyIds(
@@ -442,16 +340,14 @@ class PipelineDslTest {
 
     @Test
     fun simpleDependencySettings() {
-
-        //region given for simpleDependencySettings
+        //region given
         val a = BuildType { id("A") }
         val b = BuildType { id("B") }
-
-        //endregion
 
         val project = Project {
             listOf(a, b).forEach { buildType(it) }
         }
+        //endregion
 
         val settings: SnapshotDependency.() -> Unit = {
             runOnSameAgent = true
@@ -466,7 +362,7 @@ class PipelineDslTest {
             })
         }
 
-        //region assertions for simpleDependencySettings
+        //region assertions
         assertEquals(2, project.buildTypes.size)
 
         assertDependencies(
@@ -478,17 +374,15 @@ class PipelineDslTest {
 
     @Test
     fun singleBuildDependencySettings() {
-
-        //region given for simpleDependencySettings
+        //region given
         val a = BuildType { id("A") }
         val b = BuildType { id("B") }
         val c = BuildType { id("C") }
 
-        //endregion
-
         val project = Project {
             listOf(a, b, c).forEach { buildType(it) }
         }
+        //endregion
 
         val settings: SnapshotDependency.() -> Unit = {
             runOnSameAgent = true
@@ -502,7 +396,7 @@ class PipelineDslTest {
             buildType(c, options = settings)
         }
 
-        //region assertions for simpleDependencySettings
+        //region assertions
         assertEquals(3, project.buildTypes.size)
 
         assertDependencies(
@@ -515,17 +409,15 @@ class PipelineDslTest {
 
     @Test
     fun singleBuildDependencySettingsInParallel() {
-
-        //region given for simpleDependencySettings
+        //region given
         val a = BuildType { id("A") }
         val b = BuildType { id("B") }
         val c = BuildType { id("C") }
 
-        //endregion
-
         val project = Project {
             listOf(a, b, c).forEach { buildType(it) }
         }
+        //endregion
 
         val settings: SnapshotDependency.() -> Unit = {
             runOnSameAgent = true
@@ -541,7 +433,7 @@ class PipelineDslTest {
             }
         }
 
-        //region assertions for simpleDependencySettings
+        //region assertions
         assertEquals(3, project.buildTypes.size)
 
         assertDependencies(
@@ -554,18 +446,16 @@ class PipelineDslTest {
 
     @Test
     fun sequenceDependencySettingsInParallel() {
-
-        //region given for simpleDependencySettings
+        //region given
         val a = BuildType { id("A") }
         val b = BuildType { id("B") }
         val c = BuildType { id("C") }
         val d = BuildType { id("D") }
 
-        //endregion
-
         val project = Project {
             listOf(a, b, c, d).forEach { buildType(it) }
         }
+        //endregion
 
         val settings: SnapshotDependency.() -> Unit = {
             runOnSameAgent = true
@@ -585,7 +475,7 @@ class PipelineDslTest {
             }
         }
 
-        //region assertions for simpleDependencySettings
+        //region assertions
         assertEquals(4, project.buildTypes.size)
 
         assertDependencies(
@@ -599,17 +489,17 @@ class PipelineDslTest {
 
     @Test
     fun sequenceInParallelSettings() {
-        //region given for dependsOnWithSettings
+        //region given
         val a = BuildType { id("A") }
         val b = BuildType { id("B") }
         val c = BuildType { id("C") }
         val d = BuildType { id("D") }
         val e = BuildType { id("E") }
-        //endregion
 
         val project = Project {
             listOf(a, b, c, d, e).forEach { buildType(it) }
         }
+        //endregion
 
         val settings: SnapshotDependency.() -> Unit = {
             runOnSameAgent = true
@@ -629,7 +519,7 @@ class PipelineDslTest {
             buildType(e)
         }
 
-        //region assertions for nestedSequenceSettings
+        //region assertions
         assertEquals(5, project.buildTypes.size)
         val expDefault = SnapshotDependency()
         val expCustom = SnapshotDependency().apply(settings)
@@ -648,12 +538,14 @@ class PipelineDslTest {
 
     @Test
     fun explicitDependencyOptions_update_ImplicitOnes_in_BuildType() {
+        //region given
         val a = BuildType { id("A") }
         val b = BuildType { id("B") }
 
         val project = Project {
             listOf(a, b).forEach { buildType(it) }
         }
+        //endregion
 
         val settings: SnapshotDependency.() -> Unit = {
             runOnSameAgent = true
@@ -668,13 +560,16 @@ class PipelineDslTest {
             }
         }
 
+        //region assertions
         assertDependencies(
                 Pair(setOf(), a),
                 Pair(setOf(DepData("A", SnapshotDependency().apply(settings))), b));
+        //endregion
     }
 
     @Test
     fun explicitDependencyOptions_update_ImplicitOnes_in_Sequence() {
+        //region given
         val a = BuildType { id("A") }
         val b = BuildType { id("B") }
         val c = BuildType { id("C") }
@@ -682,6 +577,7 @@ class PipelineDslTest {
         val project = Project {
             listOf(a, b, c).forEach { buildType(it) }
         }
+        //endregion
 
         val settings: SnapshotDependency.() -> Unit = {
             runOnSameAgent = true
@@ -698,14 +594,17 @@ class PipelineDslTest {
             }
         }
 
+        //region assertions
         assertDependencies(
                 Pair(setOf(), a),
                 Pair(setOf(DepData("A", SnapshotDependency().apply(settings))), b),
                 Pair(setOf(DepData("B", SnapshotDependency())), c))
+        //endregion
     }
 
     @Test
     fun explicitDependencyOptions_update_ImplicitOnes_in_Parallel() {
+        //region given
         val a = BuildType { id("A") }
         val b = BuildType { id("B") }
         val c = BuildType { id("C") }
@@ -713,6 +612,7 @@ class PipelineDslTest {
         val project = Project {
             listOf(a, b, c).forEach { buildType(it) }
         }
+        //endregion
 
         val settings: SnapshotDependency.() -> Unit = {
             runOnSameAgent = true
@@ -729,14 +629,17 @@ class PipelineDslTest {
             }
         }
 
+        //region assertions
         assertDependencies(
                 Pair(setOf(), a),
                 Pair(setOf(DepData("A", SnapshotDependency().apply(settings))), b),
                 Pair(setOf(DepData("A", SnapshotDependency().apply(settings))), c))
+        //endregion
     }
 
     @Test
     fun selectiveExplicitDependencyOptions() {
+        //region given
         val a = BuildType { id("A") }
         val b = BuildType { id("B") }
         val c = BuildType { id("C") }
@@ -744,6 +647,7 @@ class PipelineDslTest {
         val project = Project {
             listOf(a, b, c).forEach { buildType(it) }
         }
+        //endregion
 
         val settings: SnapshotDependency.() -> Unit = {
             runOnSameAgent = true
@@ -761,17 +665,18 @@ class PipelineDslTest {
             }
         }
 
+        //region assertions
         assertDependencies(
                 Pair(setOf(), a),
                 Pair(setOf(), b),
                 Pair(setOf(DepData("A", SnapshotDependency()),
                         DepData("B", SnapshotDependency().apply(settings))), c))
+        //endregion
     }
 
     @Test
     fun sequenceWithExplicitDependencies() {
-
-        //region given for sequenceDependencies
+        //region given
         val a = BuildType { id("A") }
         val b = BuildType { id("B") }
         val c = BuildType { id("C") }
@@ -781,15 +686,15 @@ class PipelineDslTest {
         val g = BuildType { id("G") }
         val h = BuildType { id("H") }
 
+        val project = Project {
+            listOf(a, b, c, d, e, f, g, h).forEach { buildType(it) }
+        }
+        //endregion
+
         val settings: SnapshotDependency.() -> Unit = {
             runOnSameAgent = true
             onDependencyCancel = FailureAction.IGNORE
             reuseBuilds = ReuseBuilds.NO
-        }
-        //endregion
-
-        val project = Project {
-            listOf(a, b, c, d, e, f, g, h).forEach { buildType(it) }
         }
 
         val s = sequential {
@@ -813,7 +718,7 @@ class PipelineDslTest {
             buildType(h)
         }
 
-        //region assertions for sequenceDependencies
+        //region assertions
         assertEquals(8, project.buildTypes.size)
 
         assertDependencies(
