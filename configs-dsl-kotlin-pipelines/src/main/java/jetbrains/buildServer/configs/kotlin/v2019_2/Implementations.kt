@@ -1,5 +1,47 @@
 package jetbrains.buildServer.configs.kotlin.v2019_2
 
+object StageFactory {
+    val singleStages = mutableMapOf<BuildType, MutableSet<Single>>()
+
+    fun single(project: Project?, buildType: BuildType): Single {
+        val singleNode = Single(project, buildType)
+        val btNodes = singleStages.computeIfAbsent(buildType) { mutableSetOf() }
+        btNodes.add(singleNode)
+        return singleNode
+    }
+
+    fun isDependencyNew(dependant: Single, dependency: Single, options: SnapshotDependencyOptions): Boolean {
+        val dependencyToCompare = SnapshotDependency()
+        dependencyToCompare.apply(options)
+        var isNew = true
+        singleStages[dependant.buildType]?.apply {
+            forEach {
+                val that = it
+                val dep = that.buildType.dependencies.items.filter {
+                    it.snapshot != null && it.buildTypeId == dependency.buildType
+                }.firstOrNull()
+                if (it != dependant && (dep == null || !isEqual(dep.snapshot!!, dependencyToCompare))) {
+                    throw IllegalStateException("Multiple use of a build configuration '${dependant.buildType.name}' in a build chain DSL causes conflicting snapshot dependencies")
+                }
+                if (dep != null)
+                    isNew = false
+            }
+        }
+        return isNew
+    }
+
+    fun parallel(project: Project?) = ParallelStageImpl(project)
+
+    fun sequential(project: Project?) = SequentialStageImpl(project)
+
+    private fun isEqual(d1: SnapshotDependency, d2: SnapshotDependency)
+            = (d1.runOnSameAgent == d2.runOnSameAgent
+            && d1.reuseBuilds == d2.reuseBuilds
+            && d1.onDependencyFailure == d2.onDependencyFailure
+            && d1.onDependencyCancel == d2.onDependencyCancel
+            && d1.synchronizeRevisions == d2.synchronizeRevisions)
+}
+
 abstract class CompoundStageImpl(project: Project?): CompoundStage, AbstractStage(project) {
 
     val stages = arrayListOf<AbstractStage>()
@@ -10,7 +52,7 @@ abstract class CompoundStageImpl(project: Project?): CompoundStage, AbstractStag
 
     override fun buildType(bt: BuildType, options: SnapshotDependencyOptions, block: BuildType.() -> Unit): BuildType {
         bt.apply(block)
-        val stage = Single(project, bt)
+        val stage = StageFactory.single(project, bt)
         stage.dependencyOptions(options)
         stages.add(stage)
         return bt
@@ -18,7 +60,7 @@ abstract class CompoundStageImpl(project: Project?): CompoundStage, AbstractStag
 
     override fun buildType(options: SnapshotDependencyOptions, block: BuildType.() -> Unit): BuildType {
         val bt = BuildType().apply(block)
-        val stage = Single(project, bt)
+        val stage = StageFactory.single(project, bt)
         stage.dependencyOptions(options)
         stages.add(stage)
         return bt
@@ -45,10 +87,10 @@ abstract class CompoundStageImpl(project: Project?): CompoundStage, AbstractStag
     }
 
     fun sequential(project: Project?, composite: BuildType?, options: SnapshotDependencyOptions, block: CompoundStage.() -> Unit): CompoundStage {
-        val sequence = SequentialStageImpl(project).apply(block)
+        val sequence = StageFactory.sequential(project).apply(block)
         composite?.let {
             it.apply { type = BuildTypeSettings.Type.COMPOSITE }
-            sequence.stages.add(Single(project, composite))
+            sequence.stages.add(StageFactory.single(project, composite))
         }
         stages.add(sequence)
         sequence.dependencyOptions(options)
@@ -68,15 +110,15 @@ abstract class CompoundStageImpl(project: Project?): CompoundStage, AbstractStag
     }
 
     fun parallel(project: Project?, composite: BuildType?, options: SnapshotDependencyOptions, block: CompoundStage.() -> Unit): CompoundStage {
-        val parallel = ParallelImpl(project).apply(block)
+        val parallel = StageFactory.parallel(project).apply(block)
         return if (composite == null) {
             stages.add(parallel)
             parallel.dependencyOptions(options)
             parallel
         } else {
-            val compositeSequence = SequentialStageImpl(project)
+            val compositeSequence = StageFactory.sequential(project)
             compositeSequence.stages.add(parallel)
-            compositeSequence.stages.add(Single(project, composite))
+            compositeSequence.stages.add(StageFactory.single(project, composite))
             compositeSequence.dependencyOptions(options)
             stages.add(compositeSequence)
             compositeSequence
@@ -90,7 +132,7 @@ abstract class AbstractStage(val project: Project?): Stage, DependencyConstructo
 
     override fun dependsOn(vararg buildTypes: BuildType, options: SnapshotDependencyOptions) {
         buildTypes.forEach {
-            val stage = Single(project, it)
+            val stage = StageFactory.single(project, it)
             dependsOn(stage, options = options)
         }
     }
@@ -114,19 +156,19 @@ abstract class AbstractStage(val project: Project?): Stage, DependencyConstructo
 }
 
 class Single(project: Project?, val buildType: BuildType) : Stage, DependencyConstructor, AbstractStage(project) {
+
     override fun buildTypes(): List<BuildType> {
         return listOf(buildType)
     }
 
     override fun buildDependencyOn(stage: Stage, options: SnapshotDependencyOptions) {
         if (stage is Single) {
-            if (buildType.dependencies.items.stream()
-                            .noneMatch {it.buildTypeId == stage.buildType && it.snapshot != null}) {
+            if (StageFactory.isDependencyNew(this, stage, options)) {
                 buildType.dependencies.dependency(stage.buildType) {
                     snapshot(options)
                 }
             }
-        } else if (stage is ParallelImpl) {
+        } else if (stage is ParallelStageImpl) {
             stage.stages.forEach {
                 buildDependencyOn(it, options)
             }
@@ -138,7 +180,7 @@ class Single(project: Project?, val buildType: BuildType) : Stage, DependencyCon
     }
 }
 
-class ParallelImpl(project: Project?) : CompoundStage, DependencyConstructor, CompoundStageImpl(project) {
+class ParallelStageImpl(project: Project?) : CompoundStage, DependencyConstructor, CompoundStageImpl(project) {
 
     override fun buildDependencyOn(stage: Stage, options: SnapshotDependencyOptions) {
         stages.forEach { it.buildDependencyOn(stage) {
@@ -180,7 +222,7 @@ class SequentialStageImpl(project: Project?) : CompoundStage, DependencyConstruc
 }
 
 fun sequential(block: CompoundStage.() -> Unit): CompoundStage {
-    val sequence = SequentialStageImpl(null).apply(block)
+    val sequence = StageFactory.sequential(null).apply(block)
     sequence.buildDependencies()
     if (sequence.project != null)
         sequence.project.registerBuilds(sequence)
