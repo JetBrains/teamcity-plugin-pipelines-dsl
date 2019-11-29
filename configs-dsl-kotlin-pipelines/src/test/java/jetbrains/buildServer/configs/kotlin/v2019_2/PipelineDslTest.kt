@@ -1,6 +1,7 @@
 package jetbrains.buildServer.configs.kotlin.v2019_2
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.fail
 import org.junit.Test
 
 class PipelineDslTest {
@@ -34,6 +35,131 @@ class PipelineDslTest {
             Pair(setOf("B"), c)
         )
         //endregion
+    }
+
+    @Test
+    fun twoPipelinesSameBuildType_shouldNotFailIfNoNewDependencies() {
+        //region given
+        val a = BuildType { id("A") }
+        val b = BuildType { id("B") }
+        val c = BuildType { id("C") }
+        val d = BuildType { id("D") }
+        val e = BuildType { id("E") }
+
+        val project = Project {
+            buildType(a)
+            buildType(b)
+            buildType(c)
+            buildType(d)
+            buildType(e)
+        }
+        //endregion
+
+        sequential {
+            buildType(a)
+            parallel {
+                buildType(b)
+                buildType(c)
+            }
+            buildType(d)
+        }
+
+        sequential {
+            buildType(a)
+            parallel {
+                buildType(c)
+                buildType(b)
+            }
+            buildType(e)
+        }
+
+        //region assertions
+        assertDependencyIds(
+                Pair(setOf(), a),
+                Pair(setOf("A"), b),
+                Pair(setOf("A"), c),
+                Pair(setOf("B", "C"), d),
+                Pair(setOf("B", "C"), e)
+        )
+        //endregion
+    }
+
+    @Test
+    fun twoPipelinesSameBuildType_shouldFailIfNewDependencies() {
+        //region given
+        val a = BuildType { id("A") }
+        val b = BuildType { id("B") }
+        val c = BuildType { id("C") }
+        val d = BuildType { id("D") }
+
+        val project = Project {
+            buildType(a)
+            buildType(b)
+            buildType(c)
+            buildType(d)
+        }
+        //endregion
+
+        sequential {
+            buildType(a)
+            parallel {
+                buildType(b)
+                buildType(c)
+            }
+            buildType(d)
+        }
+
+        try {
+            sequential {
+                buildType(a)
+                buildType(b)
+                buildType(c)
+                buildType(d)
+            }
+            fail("An exception must occur prohibiting multiple use of the same build configurations in several pipelines that causes creating conflicting snapshot dependencies");
+        } catch (ex: IllegalStateException) {
+            // fine
+        }
+    }
+
+    @Test
+    fun onePipelinesSameBuildTypeTwice_shouldFail() {
+        //region given
+        val a = BuildType { id("A") }
+        val b = BuildType { id("B") }
+        val c = BuildType { id("C") }
+        val d = BuildType { id("D") }
+        val e = BuildType { id("E") }
+
+        val project = Project {
+            buildType(a)
+            buildType(b)
+            buildType(c)
+            buildType(d)
+            buildType(e)
+        }
+        //endregion
+
+        try {
+            sequential {
+                buildType(a)
+                parallel {
+                    sequential {
+                        buildType(b)
+                        buildType(c)
+                    }
+                    sequential {
+                        buildType(d)
+                        buildType(c)
+                    }
+                }
+                buildType(e)
+            }
+
+            fail("An exception must occur prohibiting multiple use of the same build configurations in the same pipeline");
+        } catch (ex: IllegalStateException) {
+            // fine
+        }
     }
 
     @Test
