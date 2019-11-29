@@ -1,7 +1,7 @@
 package jetbrains.buildServer.configs.kotlin.v2019_2
 
 object StageFactory {
-    val singleStages = mutableMapOf<BuildType, MutableSet<Single>>()
+    private val singleStages = mutableMapOf<BuildType, MutableSet<Single>>()
 
     fun single(project: Project?, buildType: BuildType): Single {
         val singleNode = Single(project, buildType)
@@ -17,9 +17,9 @@ object StageFactory {
         singleStages[dependant.buildType]?.apply {
             forEach {
                 val that = it
-                val dep = that.buildType.dependencies.items.filter {
+                val dep = that.buildType.dependencies.items.firstOrNull {
                     it.snapshot != null && it.buildTypeId == dependency.buildType
-                }.firstOrNull()
+                }
                 if (it != dependant && (dep == null || !isEqual(dep.snapshot!!, dependencyToCompare))) {
                     throw IllegalStateException("Multiple use of a build configuration '${dependant.buildType.name}' in a build chain DSL causes conflicting snapshot dependencies")
                 }
@@ -127,8 +127,8 @@ abstract class CompoundStageImpl(project: Project?): CompoundStage, AbstractStag
 }
 
 abstract class AbstractStage(val project: Project?): Stage, DependencyConstructor {
-    var dependencyOptions: SnapshotDependencyOptions = {}
-    val dependencies = mutableListOf<Pair<AbstractStage, SnapshotDependencyOptions>>()
+    internal var dependencyOptions: SnapshotDependencyOptions = {}
+    private val dependencies = mutableListOf<Pair<AbstractStage, SnapshotDependencyOptions>>()
 
     override fun dependsOn(vararg buildTypes: BuildType, options: SnapshotDependencyOptions) {
         buildTypes.forEach {
@@ -245,12 +245,12 @@ private fun Project.registerBuilds(stage: AbstractStage) {
 
 private fun Project.alreadyRegistered(subProject: Project): Boolean {
     return this == subProject || this.subProjects.contains(subProject)
-            || this.subProjects.any({it.alreadyRegistered(subProject)})
+            || this.subProjects.any {it.alreadyRegistered(subProject)}
 }
 
 private fun Project.alreadyRegistered(buildType: BuildType): Boolean {
     return this.buildTypes.contains(buildType)
-            || this.subProjects.any({it.alreadyRegistered(buildType)})
+            || this.subProjects.any {it.alreadyRegistered(buildType)}
 }
 
 fun BuildType.produces(artifacts: String) {
