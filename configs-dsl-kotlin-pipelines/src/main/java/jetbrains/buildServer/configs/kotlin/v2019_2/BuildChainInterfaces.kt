@@ -2,6 +2,7 @@ package jetbrains.buildServer.configs.kotlin.v2019_2
 
 typealias SnapshotDependencyOptions = SnapshotDependency.() -> Unit
 
+@TeamCityDsl
 interface Stage {
 
     fun dependsOn(vararg buildTypes: BuildType, options: SnapshotDependencyOptions = {})
@@ -11,11 +12,10 @@ interface Stage {
     fun buildTypes(): List<BuildType>
 }
 
+@TeamCityDsl
 interface CompoundStage: Stage {
 
     fun buildType(bt: BuildType, options: SnapshotDependencyOptions = {}, block: BuildType.() -> Unit = {}): BuildType
-
-    fun buildType(options: SnapshotDependencyOptions = {}, block: BuildType.() -> Unit): BuildType
 
     fun sequential(options: SnapshotDependencyOptions = {}, block: CompoundStage.() -> Unit): CompoundStage
 
@@ -23,9 +23,13 @@ interface CompoundStage: Stage {
 
 }
 
+@TeamCityDsl
 interface DependencyConstructor {
 
     fun buildDependencies()
 
     fun buildDependencyOn(stage: Stage, options: SnapshotDependencyOptions)
 }
+
+@DslMarker
+annotation class BuildChainDslMarker

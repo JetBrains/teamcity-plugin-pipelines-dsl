@@ -203,37 +203,6 @@ class PipelineDslTest {
     }
 
     @Test
-    fun simpleWithInlineBuilds() {
-        var seq: CompoundStage? = null
-        val project = Project {
-            seq = sequential {
-                val a = buildType {
-                    id("A")
-                    produces("artifact")
-                }
-                parallel {
-                    buildType {
-                        id("B")
-                        consumes(a, "artifact")
-                    }
-                    buildType { id("C") }
-                }
-            }
-            seq!!.buildTypes().forEach { buildType(it) }
-        }
-
-        //region assertions
-        assertEquals(3, project.buildTypes.size)
-
-        assertDependencyIds(
-                Pair(setOf(), seq!!.buildTypes()[0]),
-                Pair(setOf("A"), seq!!.buildTypes()[1]),
-                Pair(setOf("A"), seq!!.buildTypes()[2])
-        )
-        //endregion
-    }
-
-    @Test
     fun minimalDiamond() {
         //region given
         val a = BuildType { id("A") }

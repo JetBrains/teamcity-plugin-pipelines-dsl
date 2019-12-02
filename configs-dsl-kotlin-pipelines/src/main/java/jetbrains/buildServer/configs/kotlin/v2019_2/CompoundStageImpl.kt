@@ -16,7 +16,7 @@ abstract class CompoundStageImpl(project: Project?): CompoundStage, AbstractStag
         return bt
     }
 
-    override fun buildType(options: SnapshotDependencyOptions, block: BuildType.() -> Unit): BuildType {
+    fun buildType(options: SnapshotDependencyOptions, block: BuildType.() -> Unit): BuildType {
         val bt = BuildType().apply(block)
         val stage = StageFactory.single(project, bt)
         stage.dependencyOptions(options)
