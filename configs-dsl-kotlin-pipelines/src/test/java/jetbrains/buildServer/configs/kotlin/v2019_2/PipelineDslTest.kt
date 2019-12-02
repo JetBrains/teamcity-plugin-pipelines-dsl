@@ -20,7 +20,7 @@ class PipelineDslTest {
         }
         //endregion
 
-        sequential {
+        project.sequential {
             buildType(a)
             buildType(b)
             buildType(c)
@@ -55,7 +55,7 @@ class PipelineDslTest {
         }
         //endregion
 
-        sequential {
+        project.sequential {
             buildType(a)
             parallel {
                 buildType(b)
@@ -64,7 +64,7 @@ class PipelineDslTest {
             buildType(d)
         }
 
-        sequential {
+        project.sequential {
             buildType(a)
             parallel {
                 buildType(c)
@@ -100,7 +100,7 @@ class PipelineDslTest {
         }
         //endregion
 
-        sequential {
+        project.sequential {
             buildType(a)
             parallel {
                 buildType(b)
@@ -110,7 +110,7 @@ class PipelineDslTest {
         }
 
         try {
-            sequential {
+            project.sequential {
                 buildType(a)
                 buildType(b)
                 buildType(c)
@@ -141,7 +141,7 @@ class PipelineDslTest {
         //endregion
 
         try {
-            sequential {
+            project.sequential {
                 buildType(a)
                 parallel {
                     sequential {
@@ -181,7 +181,7 @@ class PipelineDslTest {
         }
         //endregion
 
-        sequential {
+        project.sequential {
             buildType(a)
             sequential {
                 buildType(b)
@@ -204,31 +204,31 @@ class PipelineDslTest {
 
     @Test
     fun simpleWithInlineBuilds() {
-        val seq = sequential {
-            val a = buildType {
-                id("A")
-                produces("artifact")
-            }
-            parallel {
-                buildType {
-                    id("B")
-                    consumes(a, "artifact")
-                }
-                buildType { id("C") }
-            }
-        }
-
+        var seq: CompoundStage? = null
         val project = Project {
-            seq.buildTypes().forEach { buildType(it) }
+            seq = sequential {
+                val a = buildType {
+                    id("A")
+                    produces("artifact")
+                }
+                parallel {
+                    buildType {
+                        id("B")
+                        consumes(a, "artifact")
+                    }
+                    buildType { id("C") }
+                }
+            }
+            seq!!.buildTypes().forEach { buildType(it) }
         }
 
         //region assertions
         assertEquals(3, project.buildTypes.size)
 
         assertDependencyIds(
-                Pair(setOf(), seq.buildTypes()[0]),
-                Pair(setOf("A"), seq.buildTypes()[1]),
-                Pair(setOf("A"), seq.buildTypes()[2])
+                Pair(setOf(), seq!!.buildTypes()[0]),
+                Pair(setOf("A"), seq!!.buildTypes()[1]),
+                Pair(setOf("A"), seq!!.buildTypes()[2])
         )
         //endregion
     }
@@ -246,7 +246,7 @@ class PipelineDslTest {
         }
         //endregion
 
-        sequential {
+        project.sequential {
             buildType(a)
             parallel {
                 buildType(b)
@@ -281,7 +281,7 @@ class PipelineDslTest {
         }
         //endregion
 
-        sequential {
+        project.sequential {
             buildType(a)
             parallel {
                 buildType(b)
@@ -319,7 +319,7 @@ class PipelineDslTest {
         }
         //endregion
 
-        sequential {
+        project.sequential {
             buildType(a)
             sequential {
                 sequential {
@@ -355,7 +355,7 @@ class PipelineDslTest {
         }
         //endregion
 
-        sequential {
+        project.sequential {
             buildType(a)
             parallel {
                 parallel {
@@ -393,7 +393,7 @@ class PipelineDslTest {
         }
         //endregion
 
-        sequential {
+        project.sequential {
             buildType(a)
             parallel {
                 buildType(b) {
@@ -437,7 +437,7 @@ class PipelineDslTest {
         }
         //endregion
 
-        sequential {
+        project.sequential {
             buildType(a)
             parallel {
                 buildType(b)
@@ -481,7 +481,7 @@ class PipelineDslTest {
             reuseBuilds = ReuseBuilds.NO
         }
 
-        sequential {
+        project.sequential {
             buildType(a)
             sequential(settings, {
                 buildType(b)
@@ -516,7 +516,7 @@ class PipelineDslTest {
             reuseBuilds = ReuseBuilds.NO
         }
 
-        sequential {
+        project.sequential {
             buildType(a)
             buildType(b)
             buildType(c, options = settings)
@@ -551,7 +551,7 @@ class PipelineDslTest {
             reuseBuilds = ReuseBuilds.NO
         }
 
-        sequential {
+        project.sequential {
             buildType(a)
             parallel {
                 buildType(b)
@@ -589,7 +589,7 @@ class PipelineDslTest {
             reuseBuilds = ReuseBuilds.NO
         }
 
-        sequential {
+        project.sequential {
             buildType(a)
             parallel {
                 buildType(b)
@@ -633,7 +633,7 @@ class PipelineDslTest {
             reuseBuilds = ReuseBuilds.NO
         }
 
-        sequential {
+        project.sequential {
             buildType(a)
             parallel(settings, {
                 buildType(b)
@@ -679,7 +679,7 @@ class PipelineDslTest {
             reuseBuilds = ReuseBuilds.NO
         }
 
-        sequential {
+        project.sequential {
             buildType(a)
             buildType(b) {
                 dependsOn(a, options = settings)
@@ -711,7 +711,7 @@ class PipelineDslTest {
             reuseBuilds = ReuseBuilds.NO
         }
 
-        sequential {
+        project.sequential {
             buildType(a)
             sequential {
                 dependsOn(a, options = settings)
@@ -746,7 +746,7 @@ class PipelineDslTest {
             reuseBuilds = ReuseBuilds.NO
         }
 
-        sequential {
+        project.sequential {
             buildType(a)
             parallel {
                 dependsOn(a, options = settings)
@@ -781,7 +781,7 @@ class PipelineDslTest {
             reuseBuilds = ReuseBuilds.NO
         }
 
-        sequential {
+        project.sequential {
             parallel {
                 buildType(a)
                 buildType(b)
@@ -823,13 +823,13 @@ class PipelineDslTest {
             reuseBuilds = ReuseBuilds.NO
         }
 
-        val s = sequential {
+        val s = project.sequential {
             buildType(a)
             buildType(b)
         }
 
         var p: Stage? = null
-        sequential {
+        project.sequential {
             p = parallel {
                 buildType(c)
                 buildType(d)
@@ -837,7 +837,7 @@ class PipelineDslTest {
             buildType(e)
         }
 
-        sequential {
+        project.sequential {
             dependsOn(s, p!!, options = settings)
             dependsOn(f, options = settings)
             buildType(g)

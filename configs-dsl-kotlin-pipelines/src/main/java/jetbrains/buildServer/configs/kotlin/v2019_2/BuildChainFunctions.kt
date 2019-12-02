@@ -1,6 +1,6 @@
 package jetbrains.buildServer.configs.kotlin.v2019_2
 
-fun sequential(block: CompoundStage.() -> Unit): CompoundStage {
+fun Project.sequential(block: CompoundStage.() -> Unit): CompoundStage {
     val sequence = StageFactory.sequential(null).apply(block)
     sequence.buildDependencies()
     if (sequence.project != null)
