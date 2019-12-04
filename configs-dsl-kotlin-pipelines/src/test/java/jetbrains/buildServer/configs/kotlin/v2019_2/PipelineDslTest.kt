@@ -365,8 +365,11 @@ class PipelineDslTest {
         project.sequential {
             buildType(a)
             parallel {
-                buildType(b) {
+                sequential {
+                    // we have removed lambda argument in buildType, so calling dependsOn on a single build
+                    // requires wrapping it in 'sequential'
                     dependsOn(f)
+                    buildType(b)
                 }
                 sequential {
                     buildType(c)
@@ -650,8 +653,9 @@ class PipelineDslTest {
 
         project.sequential {
             buildType(a)
-            buildType(b) {
+            sequential {
                 dependsOn(a, options = settings)
+                buildType(b)
             }
         }
 
@@ -755,8 +759,9 @@ class PipelineDslTest {
                 buildType(a)
                 buildType(b)
             }
-            buildType(c) {
+            sequential {
                 dependsOn(b, options = settings)
+                buildType(c)
             }
         }
 

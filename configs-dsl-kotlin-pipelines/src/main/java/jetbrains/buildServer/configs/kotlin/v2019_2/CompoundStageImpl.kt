@@ -8,7 +8,11 @@ abstract class CompoundStageImpl(project: Project?): CompoundStage, AbstractStag
         return stages.flatMap { it.buildTypes() }
     }
 
-    override fun buildType(bt: BuildType, options: SnapshotDependencyOptions, block: BuildType.() -> Unit): BuildType {
+    override fun buildType(bt: BuildType, options: SnapshotDependencyOptions): BuildType {
+        return buildType(bt, options) {}
+    }
+
+    fun buildType(bt: BuildType, options: SnapshotDependencyOptions, block: BuildType.() -> Unit): BuildType {
         bt.apply(block)
         val stage = StageFactory.single(project, bt)
         stage.dependencyOptions(options)
@@ -17,11 +21,7 @@ abstract class CompoundStageImpl(project: Project?): CompoundStage, AbstractStag
     }
 
     fun buildType(options: SnapshotDependencyOptions, block: BuildType.() -> Unit): BuildType {
-        val bt = BuildType().apply(block)
-        val stage = StageFactory.single(project, bt)
-        stage.dependencyOptions(options)
-        stages.add(stage)
-        return bt
+        return buildType(BuildType(), options, block)
     }
 
     fun composite(name: String, block: BuildType.() -> Unit): BuildType {

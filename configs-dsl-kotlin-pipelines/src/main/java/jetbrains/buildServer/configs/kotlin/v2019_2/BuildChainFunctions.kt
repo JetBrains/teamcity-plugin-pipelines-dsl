@@ -32,19 +32,3 @@ private fun Project.alreadyRegistered(buildType: BuildType): Boolean {
             || this.subProjects.any {it.alreadyRegistered(buildType)}
 }
 
-fun BuildType.produces(artifacts: String) {
-    artifactRules = artifacts
-}
-
-fun BuildType.consumes(bt: BuildType, artifacts: String, settings: ArtifactDependency.() -> Unit = {}) {
-    dependencies.artifacts(bt) {
-        artifactRules = artifacts
-        settings()
-    }
-}
-
-fun BuildType.dependsOn(bt: BuildType, options: SnapshotDependencyOptions = {}) {
-    dependencies.dependency(bt) {
-        snapshot(options)
-    }
-}

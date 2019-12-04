@@ -15,7 +15,7 @@ interface Stage {
 @TeamCityDsl
 interface CompoundStage: Stage {
 
-    fun buildType(bt: BuildType, options: SnapshotDependencyOptions = {}, block: BuildType.() -> Unit = {}): BuildType
+    fun buildType(bt: BuildType, options: SnapshotDependencyOptions = {}): BuildType
 
     fun sequential(options: SnapshotDependencyOptions = {}, block: CompoundStage.() -> Unit): CompoundStage
 
@@ -30,6 +30,3 @@ interface DependencyConstructor {
 
     fun buildDependencyOn(stage: Stage, options: SnapshotDependencyOptions)
 }
-
-@DslMarker
-annotation class BuildChainDslMarker
