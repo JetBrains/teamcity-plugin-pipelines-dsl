@@ -1,3 +1,5 @@
+[![obsolete JetBrains project](https://jb.gg/badges/obsolete-flat-square.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub)
+
 # TeamCity Pipelines DSL
 
 **Please note that TeamCity Build Chain DSL Extension (AKA Pipeline DSL) is no longer implemented as a separate library or plugin but included in TeamCity Kotlin DSL implementation and available as such since TeamCity version 2019.2. This repository contains an earlier implementation of this DSL extension in a form of a plugin and will not contain any further improvements and fixes.**
